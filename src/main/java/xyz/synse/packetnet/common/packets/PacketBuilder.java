@@ -3,6 +3,7 @@ package xyz.synse.packetnet.common.packets;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.UUID;
 
 public class PacketBuilder implements AutoCloseable {
     private final short id;
@@ -103,6 +104,17 @@ public class PacketBuilder implements AutoCloseable {
     public PacketBuilder withShort(short sh) {
         try {
             out.writeShort(sh);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return this;
+    }
+
+    public PacketBuilder withUUID(UUID uuid) {
+        try {
+            out.writeLong(uuid.getMostSignificantBits());
+            out.writeLong(uuid.getLeastSignificantBits());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

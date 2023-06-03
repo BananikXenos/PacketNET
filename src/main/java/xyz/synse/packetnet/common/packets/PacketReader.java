@@ -3,6 +3,7 @@ package xyz.synse.packetnet.common.packets;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.util.UUID;
 
 public class PacketReader implements AutoCloseable {
     private final ByteArrayInputStream byteIn;
@@ -30,7 +31,7 @@ public class PacketReader implements AutoCloseable {
         }
     }
 
-    public byte readByte(){
+    public byte readByte() {
         try {
             return in.readByte();
         } catch (IOException e) {
@@ -38,7 +39,7 @@ public class PacketReader implements AutoCloseable {
         }
     }
 
-    public boolean readBoolean(){
+    public boolean readBoolean() {
         try {
             return in.readBoolean();
         } catch (IOException e) {
@@ -46,7 +47,7 @@ public class PacketReader implements AutoCloseable {
         }
     }
 
-    public String readString(){
+    public String readString() {
         try {
             return in.readUTF();
         } catch (IOException e) {
@@ -54,7 +55,7 @@ public class PacketReader implements AutoCloseable {
         }
     }
 
-    public int readInt(){
+    public int readInt() {
         try {
             return in.readInt();
         } catch (IOException e) {
@@ -62,7 +63,7 @@ public class PacketReader implements AutoCloseable {
         }
     }
 
-    public long readLong(){
+    public long readLong() {
         try {
             return in.readLong();
         } catch (IOException e) {
@@ -70,7 +71,7 @@ public class PacketReader implements AutoCloseable {
         }
     }
 
-    public float readFloat(){
+    public float readFloat() {
         try {
             return in.readFloat();
         } catch (IOException e) {
@@ -78,7 +79,7 @@ public class PacketReader implements AutoCloseable {
         }
     }
 
-    public double readDouble(){
+    public double readDouble() {
         try {
             return in.readDouble();
         } catch (IOException e) {
@@ -86,9 +87,19 @@ public class PacketReader implements AutoCloseable {
         }
     }
 
-    public short readShort(){
+    public short readShort() {
         try {
             return in.readShort();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public UUID readUUID() {
+        try {
+            long mostSignificantBits = in.readLong();
+            long leastSignificantBits = in.readLong();
+            return new UUID(mostSignificantBits, leastSignificantBits);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

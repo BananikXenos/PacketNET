@@ -1,7 +1,6 @@
 package xyz.synse.packetnet.client;
 
 import xyz.synse.packetnet.client.listeners.IClientListener;
-import xyz.synse.packetnet.common.Constants;
 import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.packets.Packet;
 
@@ -11,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Client {
+    private final int bufferSize;
     private volatile boolean udpListenerRunning;
     private InetAddress serverAddress;
     private int tcpPort;
@@ -18,6 +18,11 @@ public class Client {
     private final List<IClientListener> listeners = new ArrayList<>();
     private Socket tcpSocket;
     private DatagramSocket udpSocket;
+    
+    public Client(int bufferSize){
+
+        this.bufferSize = bufferSize;
+    }
 
     /**
      * Connects the client to the server using the specified TCP and UDP ports.
@@ -90,7 +95,7 @@ public class Client {
 
     private void startTcpListener() {
         try {
-            byte[] buffer = new byte[Constants.BUFFER_SIZE];
+            byte[] buffer = new byte[bufferSize];
             int bytesRead;
 
             while ((bytesRead = tcpSocket.getInputStream().read(buffer)) != -1) {
@@ -104,7 +109,7 @@ public class Client {
     }
 
     private void startUdpListener() {
-        byte[] buffer = new byte[Constants.BUFFER_SIZE];
+        byte[] buffer = new byte[bufferSize];
 
         while (udpListenerRunning && udpSocket != null && !Thread.interrupted()) {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);

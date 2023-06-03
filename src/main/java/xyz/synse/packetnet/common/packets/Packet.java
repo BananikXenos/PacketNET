@@ -6,7 +6,7 @@ public class Packet {
     private final short id;
     private final byte[] data;
 
-    Packet(short id, byte[] data) {
+    public Packet(short id, byte[] data) {
         this.id = id;
         this.data = data;
     }

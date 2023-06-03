@@ -4,34 +4,39 @@ import xyz.synse.packetnet.client.Client;
 import xyz.synse.packetnet.client.listeners.ClientListenerAdapter;
 import xyz.synse.packetnet.client.listeners.IClientListener;
 import xyz.synse.packetnet.common.ProtocolType;
+import xyz.synse.packetnet.common.compression.PacketCompressor;
+import xyz.synse.packetnet.common.encryption.PacketEncryptor;
 import xyz.synse.packetnet.common.packets.Packet;
 import xyz.synse.packetnet.common.packets.PacketBuilder;
-import xyz.synse.packetnet.common.packets.PacketCompressor;
 import xyz.synse.packetnet.common.packets.PacketReader;
 import xyz.synse.packetnet.server.Server;
 import xyz.synse.packetnet.server.listeners.IServerListener;
 import xyz.synse.packetnet.server.listeners.ServerListenerAdapter;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.Arrays;
 import java.util.Random;
+import java.util.UUID;
 
 public class Test {
-    public static void main(String[] args) throws InterruptedException, IOException {
+    private static final String secretKey = "1F16hIQ3SjQ$k1!9";
+
+    public static void main(String[] args) throws Exception {
         // Create and start the server
-        Server server = new Server();
+        Server server = new Server(1024);
         server.addListener(createServerListener());
         server.start(3300, 3301);
 
         // Create and connect the client to the server
-        Client client = new Client();
+        Client client = new Client(1024);
         client.addListener(createClientListener());
-        client.connect("localhost", 3300, 3301);
+        client.connect("127.0.0.1", 3300, 3301);
 
-        // Create a sample packet and compress it
+        // Create a sample packet and encrypt, compress it
         Packet packet = createSamplePacket();
-        Packet compressedPacket = PacketCompressor.compress(packet, PacketCompressor.LZ4_COMPRESSOR);
+        Packet encryptedPacket = PacketEncryptor.encrypt(packet, secretKey);
+        Packet compressedPacket = PacketCompressor.compress(encryptedPacket, PacketCompressor.GZIP_COMPRESSOR);
 
         // Send the compressed packet using UDP and TCP
         client.send(compressedPacket, ProtocolType.UDP);
@@ -68,15 +73,18 @@ public class Test {
                     .withLong(random.nextLong())
                     .withFloat(random.nextFloat())
                     .withShort((short) random.nextInt(Short.MAX_VALUE))
+                    .withBytes(new byte[]{0x01, 0x02, 0x03})
+                    .withUUID(UUID.randomUUID())
                     .build();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    private static void processPacket(Packet packet) {
-        Packet decompressedPacket = PacketCompressor.decompress(packet, PacketCompressor.LZ4_COMPRESSOR);
-        try (PacketReader reader = new PacketReader(decompressedPacket)) {
+    private static void processPacket(Packet packet) throws Exception {
+        Packet decompressedPacket = PacketCompressor.decompress(packet, PacketCompressor.GZIP_COMPRESSOR);
+        Packet decryptedPacket = PacketEncryptor.decrypt(decompressedPacket, secretKey);
+        try (PacketReader reader = new PacketReader(decryptedPacket)) {
             int intValue = reader.readInt();
             String stringValue = reader.readString();
             boolean booleanValue = reader.readBoolean();
@@ -84,6 +92,8 @@ public class Test {
             long longValue = reader.readLong();
             float floatValue = reader.readFloat();
             short shortValue = reader.readShort();
+            byte[] bytesValue = reader.readBytes();
+            UUID uuidValue = reader.readUUID();
 
             System.out.println("Int Value: " + intValue);
             System.out.println("String Value: " + stringValue);
@@ -92,6 +102,8 @@ public class Test {
             System.out.println("Long Value: " + longValue);
             System.out.println("Float Value: " + floatValue);
             System.out.println("Short Value: " + shortValue);
+            System.out.println("Bytes Value: " + Arrays.toString(bytesValue));
+            System.out.println("UUID Value: " + uuidValue);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -125,7 +137,11 @@ public class Test {
             @Override
             public void onReceived(InetAddress address, int port, ProtocolType protocolType, Packet packet) {
                 System.out.println("SERVER >> Data received from " + address.getHostName() + ":" + port + " using " + protocolType.name() + "(" + packet.getData().length + " bytes" + ")");
-                processPacket(packet);
+                try {
+                    processPacket(packet);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             }
 
             @Override

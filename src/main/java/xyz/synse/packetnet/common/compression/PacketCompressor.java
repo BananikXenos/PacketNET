@@ -1,8 +1,8 @@
-package xyz.synse.packetnet.common.packets;
+package xyz.synse.packetnet.common.compression;
 
-import xyz.synse.packetnet.common.compression.ICompressor;
 import xyz.synse.packetnet.common.compression.compressors.GZipCompressor;
 import xyz.synse.packetnet.common.compression.compressors.LZ4Compressor;
+import xyz.synse.packetnet.common.packets.Packet;
 
 public class PacketCompressor {
     public static final ICompressor GZIP_COMPRESSOR = new GZipCompressor();
