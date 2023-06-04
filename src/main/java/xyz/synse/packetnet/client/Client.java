@@ -18,9 +18,10 @@ public class Client {
     private final List<IClientListener> listeners = new ArrayList<>();
     private Socket tcpSocket;
     private DatagramSocket udpSocket;
-    
-    public Client(int bufferSize){
+    private Thread tcpThread;
+    private Thread udpThread;
 
+    public Client(int bufferSize) {
         this.bufferSize = bufferSize;
     }
 
@@ -39,13 +40,13 @@ public class Client {
 
         // Init tcp
         tcpSocket = new Socket(serverAddress, tcpPort);
-        Thread tcpThread = new Thread(this::startTcpListener);
+        tcpThread = new Thread(this::startTcpListener);
         tcpThread.start();
 
         udpListenerRunning = true;
         // Init udp
         udpSocket = new DatagramSocket();
-        Thread udpThread = new Thread(this::startUdpListener);
+        udpThread = new Thread(this::startUdpListener);
         udpThread.start();
 
         // Notify listeners about the connection
@@ -55,20 +56,36 @@ public class Client {
     /**
      * Disconnects the client from the server.
      */
-    public void disconnect() {
-        if (tcpSocket != null) {
-            try (Socket socket = tcpSocket) {
-                // No need to manually set tcpSocket to null
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+    public void disconnect() throws IOException {
+        if (tcpSocket != null && !tcpSocket.isClosed()) {
+            tcpSocket.close();
             tcpSocket = null;
         }
 
-        if (udpSocket != null) {
+        if (udpSocket != null && !udpSocket.isClosed()) {
             udpSocket.close();
             udpListenerRunning = false;
             udpSocket = null;
+        }
+
+        if (tcpThread != null) {
+            tcpThread.interrupt();
+            try {
+                tcpThread.join();
+            } catch (InterruptedException e) {
+                // Handle the interrupted exception if required
+            }
+            tcpThread = null;
+        }
+
+        if (udpThread != null) {
+            udpThread.interrupt();
+            try {
+                udpThread.join();
+            } catch (InterruptedException e) {
+                // Handle the interrupted exception if required
+            }
+            udpThread = null;
         }
 
         // Notify listeners about the disconnection
@@ -103,6 +120,7 @@ public class Client {
                 listeners.forEach(iClientListener -> iClientListener.onReceived(ProtocolType.TCP, packet));
             }
         } catch (SocketException ignored) {
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -120,6 +138,7 @@ public class Client {
                 Packet constructedPacket = Packet.fromByteArray(data);
                 listeners.forEach(iClientListener -> iClientListener.onReceived(ProtocolType.UDP, constructedPacket));
             } catch (SocketException ignored) {
+
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -132,7 +151,7 @@ public class Client {
      * @param packet   The packet to send.
      * @param protocol The protocol to use (TCP or UDP).
      */
-    public void send(Packet packet, ProtocolType protocol) {
+    public void send(Packet packet, ProtocolType protocol) throws IOException {
         switch (protocol) {
             case TCP -> sendTcp(packet);
             case UDP -> sendUdp(packet);
@@ -140,30 +159,22 @@ public class Client {
         }
     }
 
-    private void sendTcp(Packet packet) {
+    private void sendTcp(Packet packet) throws IOException {
         if (tcpSocket != null) {
-            try {
-                byte[] data = packet.toByteArray();
-                tcpSocket.getOutputStream().write(data);
+            byte[] data = packet.toByteArray();
+            tcpSocket.getOutputStream().write(data);
 
-                listeners.forEach(listener -> listener.onSent(ProtocolType.TCP, packet));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            listeners.forEach(listener -> listener.onSent(ProtocolType.TCP, packet));
         }
     }
 
-    private void sendUdp(Packet packet) {
+    private void sendUdp(Packet packet) throws IOException {
         if (udpSocket != null) {
-            try {
-                byte[] data = packet.toByteArray();
-                DatagramPacket datagramPacket = new DatagramPacket(data, data.length, serverAddress, udpPort);
-                udpSocket.send(datagramPacket);
+            byte[] data = packet.toByteArray();
+            DatagramPacket datagramPacket = new DatagramPacket(data, data.length, serverAddress, udpPort);
+            udpSocket.send(datagramPacket);
 
-                listeners.forEach(listener -> listener.onSent(ProtocolType.UDP, packet));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            listeners.forEach(listener -> listener.onSent(ProtocolType.UDP, packet));
         }
     }
 

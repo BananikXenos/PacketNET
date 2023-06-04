@@ -14,95 +14,51 @@ public class PacketReader implements AutoCloseable {
         this.in = new DataInputStream(byteIn);
     }
 
-    public byte[] readBytes() {
-        try {
-            int size = in.readInt();
-            return in.readNBytes(size);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public byte[] readBytes() throws IOException {
+        int size = in.readInt();
+        return in.readNBytes(size);
     }
 
-    public byte[] readBytes(int len) {
-        try {
-            return in.readNBytes(len);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public byte[] readBytes(int len) throws IOException {
+        return in.readNBytes(len);
     }
 
-    public byte readByte() {
-        try {
-            return in.readByte();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public byte readByte() throws IOException {
+        return in.readByte();
     }
 
-    public boolean readBoolean() {
-        try {
-            return in.readBoolean();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public boolean readBoolean() throws IOException {
+        return in.readBoolean();
     }
 
-    public String readString() {
-        try {
-            return in.readUTF();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public String readString() throws IOException {
+        return in.readUTF();
     }
 
-    public int readInt() {
-        try {
-            return in.readInt();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public int readInt() throws IOException {
+        return in.readInt();
     }
 
-    public long readLong() {
-        try {
-            return in.readLong();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public long readLong() throws IOException {
+        return in.readLong();
     }
 
-    public float readFloat() {
-        try {
-            return in.readFloat();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public float readFloat() throws IOException {
+        return in.readFloat();
     }
 
-    public double readDouble() {
-        try {
-            return in.readDouble();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public double readDouble() throws IOException {
+        return in.readDouble();
     }
 
-    public short readShort() {
-        try {
-            return in.readShort();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public short readShort() throws IOException {
+        return in.readShort();
     }
 
-    public UUID readUUID() {
-        try {
-            long mostSignificantBits = in.readLong();
-            long leastSignificantBits = in.readLong();
-            return new UUID(mostSignificantBits, leastSignificantBits);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public UUID readUUID() throws IOException {
+        long mostSignificantBits = in.readLong();
+        long leastSignificantBits = in.readLong();
+        return new UUID(mostSignificantBits, leastSignificantBits);
     }
 
     @Override

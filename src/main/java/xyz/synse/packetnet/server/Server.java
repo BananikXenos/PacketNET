@@ -6,8 +6,9 @@ import xyz.synse.packetnet.server.listeners.IServerListener;
 
 import java.io.IOException;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Server {
     private final int bufferSize;
@@ -16,10 +17,9 @@ public class Server {
     private boolean running;
     private DatagramSocket udpSocket;
     private ServerSocket tcpSocket;
-    private final List<Socket> sockets = new ArrayList<>();
+    private final Set<Socket> sockets = new LinkedHashSet<>();
     private final List<IServerListener> listeners = new ArrayList<>();
-    private Thread tcpThread;
-    private Thread udpThread;
+    private ExecutorService executorService;
 
     /**
      * Creates a new instance of the Server class.
@@ -35,7 +35,7 @@ public class Server {
      * @param tcpPort The TCP port to listen on.
      * @param udpPort The UDP port to listen on.
      */
-    public void start(int tcpPort, int udpPort) {
+    public void start(int tcpPort, int udpPort) throws IOException {
         if (running) {
             System.out.println("Server is already running.");
             return;
@@ -44,21 +44,16 @@ public class Server {
         this.tcpPort = tcpPort;
         this.udpPort = udpPort;
 
-        try {
-            tcpSocket = new ServerSocket(tcpPort);
-            udpSocket = new DatagramSocket(udpPort);
+        executorService = Executors.newCachedThreadPool();
 
-            tcpThread = new Thread(this::startTcpListener);
-            udpThread = new Thread(this::startUdpListener);
+        tcpSocket = new ServerSocket(tcpPort);
+        udpSocket = new DatagramSocket(udpPort);
 
-            tcpThread.start();
-            udpThread.start();
+        executorService.execute(this::startTcpListener);
+        executorService.execute(this::startUdpListener);
 
-            running = true;
-            System.out.println("Server started.");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        running = true;
+        System.out.println("Server started.");
     }
 
     /**
@@ -72,8 +67,7 @@ public class Server {
             return;
         }
 
-        tcpThread.interrupt();
-        udpThread.interrupt();
+        executorService.shutdownNow();
 
         tcpSocket.close();
         tcpSocket = null;
@@ -103,14 +97,16 @@ public class Server {
     }
 
     private void startTcpListener() {
-        while (!Thread.interrupted() && tcpSocket != null) {
+        while (!Thread.interrupted()) {
             try {
                 Socket clientSocket = tcpSocket.accept();
                 sockets.add(clientSocket);
                 listeners.forEach(iServerListener -> iServerListener.onConnected(clientSocket));
-                Thread clientThread = new Thread(() -> handleTcpClient(clientSocket));
-                clientThread.start();
+                executorService.submit(() -> handleTcpClient(clientSocket));
             } catch (SocketException ignored) {
+                // SocketException will be thrown when the socket is closed,
+                // so we can safely break the loop in this case
+                break;
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -123,16 +119,11 @@ public class Server {
         while (!Thread.interrupted()) {
             DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length);
             try {
-                if (udpSocket == null) {
-                    break; // Exit the loop if udpSocket is null (server is closed)
-                }
                 udpSocket.receive(datagramPacket);
-                byte[] data = datagramPacket.getData();
-                int length = datagramPacket.getLength();
                 InetAddress address = datagramPacket.getAddress();
                 int port = datagramPacket.getPort();
 
-                Packet packet = Packet.fromByteArray(buffer);
+                Packet packet = Packet.fromByteArray(datagramPacket.getData());
                 listeners.forEach(iServerListener -> iServerListener.onReceived(address, port, ProtocolType.UDP, packet));
             } catch (SocketException e) {
                 // SocketException will be thrown when the socket is closed,
@@ -184,7 +175,7 @@ public class Server {
      * @param packet   The packet to send.
      * @param protocol The protocol to use (TCP or UDP).
      */
-    public void send(InetAddress address, int port, Packet packet, ProtocolType protocol) {
+    public void send(InetAddress address, int port, Packet packet, ProtocolType protocol) throws IOException {
         switch (protocol) {
             case TCP -> sendTcp(address, port, packet);
             case UDP -> sendUdp(address, port, packet);
@@ -192,33 +183,25 @@ public class Server {
         }
     }
 
-    private void sendTcp(InetAddress address, int port, Packet packet) {
+    private void sendTcp(InetAddress address, int port, Packet packet) throws IOException {
         if (tcpSocket != null) {
             for (Socket clientSocket : sockets) {
                 if (clientSocket.getInetAddress() != address || clientSocket.getPort() != port) continue;
 
-                try {
-                    byte[] data = packet.toByteArray();
-                    clientSocket.getOutputStream().write(data);
-                    listeners.forEach(iServerListener -> iServerListener.onSent(address, port, ProtocolType.TCP, packet));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                byte[] data = packet.toByteArray();
+                clientSocket.getOutputStream().write(data);
+                listeners.forEach(iServerListener -> iServerListener.onSent(address, port, ProtocolType.TCP, packet));
                 break;
             }
         }
     }
 
-    private void sendUdp(InetAddress address, int port, Packet packet) {
+    private void sendUdp(InetAddress address, int port, Packet packet) throws IOException {
         if (udpSocket != null) {
-            try {
-                byte[] data = packet.toByteArray();
-                DatagramPacket datagramPacket = new DatagramPacket(data, data.length, address, port);
-                udpSocket.send(datagramPacket);
-                listeners.forEach(iServerListener -> iServerListener.onSent(address, port, ProtocolType.UDP, packet));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            byte[] data = packet.toByteArray();
+            DatagramPacket datagramPacket = new DatagramPacket(data, data.length, address, port);
+            udpSocket.send(datagramPacket);
+            listeners.forEach(iServerListener -> iServerListener.onSent(address, port, ProtocolType.UDP, packet));
         }
     }
 
@@ -228,8 +211,8 @@ public class Server {
      * @param protocol The protocol to use (TCP or UDP).
      * @param packet   The packet to broadcast.
      */
-    public void broadcast(ProtocolType protocol, Packet packet) {
-        List<Socket> clientSockets = getSockets();
+    public void broadcast(ProtocolType protocol, Packet packet) throws IOException {
+        Set<Socket> clientSockets = getSockets();
 
         for (Socket clientSocket : clientSockets) {
             InetAddress address = clientSocket.getInetAddress();
@@ -262,7 +245,7 @@ public class Server {
      *
      * @return The list of sockets.
      */
-    public List<Socket> getSockets() {
+    public Set<Socket> getSockets() {
         return sockets;
     }
 }

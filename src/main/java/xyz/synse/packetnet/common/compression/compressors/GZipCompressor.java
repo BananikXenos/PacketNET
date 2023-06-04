@@ -10,18 +10,16 @@ import java.util.zip.GZIPOutputStream;
 
 public class GZipCompressor implements ICompressor {
     @Override
-    public byte[] compress(byte[] data) {
+    public byte[] compress(byte[] data) throws IOException {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         try (GZIPOutputStream gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream)) {
             gzipOutputStream.write(data);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
         return byteArrayOutputStream.toByteArray();
     }
 
     @Override
-    public byte[] decompress(byte[] compressedData) {
+    public byte[] decompress(byte[] compressedData) throws IOException {
         ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(compressedData);
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         try (GZIPInputStream gzipInputStream = new GZIPInputStream(byteArrayInputStream)) {
@@ -30,8 +28,6 @@ public class GZipCompressor implements ICompressor {
             while ((bytesRead = gzipInputStream.read(buffer)) != -1) {
                 byteArrayOutputStream.write(buffer, 0, bytesRead);
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
         return byteArrayOutputStream.toByteArray();
     }

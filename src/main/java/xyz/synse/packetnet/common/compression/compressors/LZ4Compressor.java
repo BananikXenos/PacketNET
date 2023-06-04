@@ -8,7 +8,7 @@ import java.io.*;
 
 public class LZ4Compressor implements ICompressor {
     @Override
-    public byte[] compress(byte[] data) {
+    public byte[] compress(byte[] data) throws IOException {
         try (
                 ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
                 DataOutputStream dataOut = new DataOutputStream(byteOut);
@@ -22,13 +22,11 @@ public class LZ4Compressor implements ICompressor {
             }
 
             return byteOut.toByteArray();
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
         }
     }
 
     @Override
-    public byte[] decompress(byte[] data) {
+    public byte[] decompress(byte[] data) throws IOException {
         try (
                 ByteArrayInputStream byteIn = new ByteArrayInputStream(data);
                 DataInputStream dataIn = new DataInputStream(byteIn);
@@ -42,8 +40,6 @@ public class LZ4Compressor implements ICompressor {
                 outStream.read(restored);
                 return restored;
             }
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
         }
     }
 }
