@@ -2,6 +2,7 @@ package xyz.synse.packetnet.server;
 
 import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.packets.Packet;
+import xyz.synse.packetnet.common.packets.PacketReader;
 import xyz.synse.packetnet.server.listeners.IServerListener;
 
 import java.io.IOException;
@@ -17,12 +18,14 @@ public class Server {
     private boolean running;
     private DatagramSocket udpSocket;
     private ServerSocket tcpSocket;
-    private final Set<Socket> sockets = new LinkedHashSet<>();
+    private final Map<InetAddress, Connection> connections = new HashMap<>();
     private final List<IServerListener> listeners = new ArrayList<>();
     private ExecutorService executorService;
 
     /**
      * Creates a new instance of the Server class.
+     *
+     * @param bufferSize The size of the buffer for receiving data.
      */
     public Server(int bufferSize) {
         this.bufferSize = bufferSize;
@@ -34,6 +37,7 @@ public class Server {
      *
      * @param tcpPort The TCP port to listen on.
      * @param udpPort The UDP port to listen on.
+     * @throws IOException if an I/O error occurs while starting the server.
      */
     public void start(int tcpPort, int udpPort) throws IOException {
         if (running) {
@@ -70,9 +74,9 @@ public class Server {
         executorService.shutdownNow();
 
         tcpSocket.close();
-        tcpSocket = null;
         udpSocket.close();
-        udpSocket = null;
+
+        connections.clear();
 
         running = false;
         System.out.println("Server stopped.");
@@ -96,13 +100,17 @@ public class Server {
         this.listeners.remove(listener);
     }
 
+    /**
+     * Starts the TCP listener thread to accept incoming connections.
+     */
     private void startTcpListener() {
         while (!Thread.interrupted()) {
             try {
                 Socket clientSocket = tcpSocket.accept();
-                sockets.add(clientSocket);
-                listeners.forEach(iServerListener -> iServerListener.onConnected(clientSocket));
-                executorService.submit(() -> handleTcpClient(clientSocket));
+                Connection connection = new Connection(clientSocket);
+                connections.put(clientSocket.getInetAddress(), connection);
+                listeners.forEach(listener -> listener.onConnected(connection));
+                executorService.submit(() -> handleTcpClient(connection));
             } catch (SocketException ignored) {
                 // SocketException will be thrown when the socket is closed,
                 // so we can safely break the loop in this case
@@ -113,6 +121,9 @@ public class Server {
         }
     }
 
+    /**
+     * Starts the UDP listener thread to receive data from clients.
+     */
     private void startUdpListener() {
         byte[] buffer = new byte[bufferSize];
 
@@ -123,8 +134,14 @@ public class Server {
                 InetAddress address = datagramPacket.getAddress();
                 int port = datagramPacket.getPort();
 
+                Connection connection = connections.get(address);
+                if (connection == null || !connection.getUdpPort().isPresent() || connection.getUdpPort().get() != port) {
+                    System.err.println("Packet from unknown connection");
+                    continue;
+                }
+
                 Packet packet = Packet.fromByteArray(datagramPacket.getData());
-                listeners.forEach(iServerListener -> iServerListener.onReceived(address, port, ProtocolType.UDP, packet));
+                listeners.forEach(listener -> listener.onReceived(connection, ProtocolType.UDP, packet));
             } catch (SocketException e) {
                 // SocketException will be thrown when the socket is closed,
                 // so we can safely break the loop in this case
@@ -135,14 +152,19 @@ public class Server {
         }
     }
 
-    private void handleTcpClient(Socket clientSocket) {
+    /**
+     * Handles the TCP client connection and processes incoming packets.
+     *
+     * @param connection The client connection to handle.
+     */
+    private void handleTcpClient(Connection connection) {
         try {
             while (!Thread.interrupted()) {
                 byte[] buffer = new byte[bufferSize];
                 int bytesRead;
 
                 try {
-                    bytesRead = clientSocket.getInputStream().read(buffer);
+                    bytesRead = connection.getTcpSocket().getInputStream().read(buffer);
                 } catch (SocketException e) {
                     // Handle disconnection scenario separately
                     if (e.getMessage().equals("Socket closed")) {
@@ -157,51 +179,84 @@ public class Server {
                 }
 
                 Packet packet = Packet.fromByteArray(buffer);
-                listeners.forEach(iServerListener -> iServerListener.onReceived(clientSocket.getInetAddress(), clientSocket.getPort(), ProtocolType.TCP, packet));
+                if (packet.getID() == (short) -1000) {
+                    try (PacketReader packetReader = new PacketReader(packet)) {
+                        int udpPort = packetReader.readInt();
+
+                        connection.setUdpPort(Optional.of(udpPort));
+                        System.out.println("Established UDP Connection");
+                    } catch (Exception ignored) {
+                        System.err.println("Malformed udp port packet");
+                    }
+                    continue;
+                }
+
+                listeners.forEach(listener -> listener.onReceived(connection, ProtocolType.TCP, packet));
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        sockets.remove(clientSocket);
-        listeners.forEach(iServerListener -> iServerListener.onDisconnected(clientSocket));
+        connections.remove(connection.getTcpSocket().getInetAddress());
+        listeners.forEach(listener -> listener.onDisconnected(connection));
     }
 
     /**
      * Sends data to a specific client using the specified protocol.
      *
-     * @param address  The client's IP address.
-     * @param port     The client's port.
-     * @param packet   The packet to send.
-     * @param protocol The protocol to use (TCP or UDP).
+     * @param connection The client's connection object.
+     * @param packet     The packet to send.
+     * @param protocol   The protocol to use (TCP or UDP).
+     * @throws IOException if an I/O error occurs while sending the packet.
      */
-    public void send(InetAddress address, int port, Packet packet, ProtocolType protocol) throws IOException {
+    public void send(Connection connection, Packet packet, ProtocolType protocol) throws IOException {
         switch (protocol) {
-            case TCP -> sendTcp(address, port, packet);
-            case UDP -> sendUdp(address, port, packet);
-            default -> System.out.println("Unsupported protocol: " + protocol);
-        }
-    }
-
-    private void sendTcp(InetAddress address, int port, Packet packet) throws IOException {
-        if (tcpSocket != null) {
-            for (Socket clientSocket : sockets) {
-                if (clientSocket.getInetAddress() != address || clientSocket.getPort() != port) continue;
-
-                byte[] data = packet.toByteArray();
-                clientSocket.getOutputStream().write(data);
-                listeners.forEach(iServerListener -> iServerListener.onSent(address, port, ProtocolType.TCP, packet));
+            case TCP:
+                sendTcp(connection, packet);
                 break;
-            }
+            case UDP:
+                sendUdp(connection, packet);
+                break;
+            default:
+                System.out.println("Unsupported protocol: " + protocol);
         }
     }
 
-    private void sendUdp(InetAddress address, int port, Packet packet) throws IOException {
+    /**
+     * Sends a packet to a client using TCP.
+     *
+     * @param connection The client's connection object.
+     * @param packet     The packet to send.
+     * @throws IOException if an I/O error occurs while sending the packet.
+     */
+    private void sendTcp(Connection connection, Packet packet) throws IOException {
+        Socket tcpSocket = connection.getTcpSocket();
+        if (tcpSocket != null && tcpSocket.isConnected()) {
+            byte[] data = packet.toByteArray();
+            tcpSocket.getOutputStream().write(data);
+            listeners.forEach(listener -> listener.onSent(connection, ProtocolType.TCP, packet));
+        }
+    }
+
+    /**
+     * Sends a packet to a client using UDP.
+     *
+     * @param connection The client's connection object.
+     * @param packet     The packet to send.
+     * @throws IOException if an I/O error occurs while sending the packet.
+     */
+    private void sendUdp(Connection connection, Packet packet) throws IOException {
+        Optional<Integer> udpPortOptional = connection.getUdpPort();
+        if (udpPortOptional.isEmpty()) {
+            throw new IOException("No UDP connection established");
+        }
+
+        int udpPort = udpPortOptional.get();
         if (udpSocket != null) {
             byte[] data = packet.toByteArray();
-            DatagramPacket datagramPacket = new DatagramPacket(data, data.length, address, port);
+            DatagramPacket datagramPacket = new DatagramPacket(data, 0, data.length, connection.getTcpSocket().getInetAddress(), udpPort);
             udpSocket.send(datagramPacket);
-            listeners.forEach(iServerListener -> iServerListener.onSent(address, port, ProtocolType.UDP, packet));
+            listeners.forEach(listener -> listener.onSent(connection, ProtocolType.UDP, packet));
         }
     }
 
@@ -210,15 +265,14 @@ public class Server {
      *
      * @param protocol The protocol to use (TCP or UDP).
      * @param packet   The packet to broadcast.
+     * @throws IOException if an I/O error occurs while broadcasting the packet.
      */
     public void broadcast(ProtocolType protocol, Packet packet) throws IOException {
-        Set<Socket> clientSockets = getSockets();
+        for (Connection connection : connections.values()) {
+            if (protocol == ProtocolType.UDP && !connection.getUdpPort().isPresent())
+                continue;
 
-        for (Socket clientSocket : clientSockets) {
-            InetAddress address = clientSocket.getInetAddress();
-            int port = clientSocket.getPort();
-
-            send(address, port, packet, protocol);
+            send(connection, packet, protocol);
         }
     }
 
@@ -241,11 +295,11 @@ public class Server {
     }
 
     /**
-     * Returns the list of connected client sockets.
+     * Returns the list of connected client connections.
      *
-     * @return The list of sockets.
+     * @return The list of connections.
      */
-    public Set<Socket> getSockets() {
-        return sockets;
+    public Collection<Connection> getConnections() {
+        return connections.values();
     }
 }

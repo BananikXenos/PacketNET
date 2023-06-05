@@ -1,6 +1,5 @@
 package xyz.synse.packetnet.client.listeners;
 
-import xyz.synse.packetnet.client.Client;
 import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.packets.Packet;
 

@@ -45,8 +45,9 @@ public static void main(String[] args) throws Exception {
     // Wait for a few seconds
     Thread.sleep(3000L);
 
-    // Broadcast the compressed packet to all connected clients using TCP
+    // Broadcast the compressed packet to all connected clients using TCP & UDP
     server.broadcast(ProtocolType.TCP, compressedPacket);
+    server.broadcast(ProtocolType.UDP, compressedPacket);
 
     // Wait for a second
     Thread.sleep(1000L);
@@ -67,7 +68,7 @@ public static Packet createSamplePacket() {
 
         return builder
                 .withInt(random.nextInt())
-                .withString(generateRandomString(10))
+                .withString("Hello, World!")
                 .withBoolean(random.nextBoolean())
                 .withDouble(random.nextDouble())
                 .withLong(random.nextLong())
@@ -85,58 +86,27 @@ private static void processPacket(Packet packet) throws Exception {
     Packet decompressedPacket = PacketCompressor.decompress(packet, PacketCompressor.GZIP_COMPRESSOR);
     Packet decryptedPacket = PacketEncryptor.decrypt(decompressedPacket, secretKey);
     try (PacketReader reader = new PacketReader(decryptedPacket)) {
-        int intValue = reader.readInt();
-        String stringValue = reader.readString();
-        boolean booleanValue = reader.readBoolean();
-        double doubleValue = reader.readDouble();
-        long longValue = reader.readLong();
-        float floatValue = reader.readFloat();
-        short shortValue = reader.readShort();
-        byte[] bytesValue = reader.readBytes();
-        UUID uuidValue = reader.readUUID();
-
-        System.out.println("Int Value: " + intValue);
-        System.out.println("String Value: " + stringValue);
-        System.out.println("Boolean Value: " + booleanValue);
-        System.out.println("Double Value: " + doubleValue);
-        System.out.println("Long Value: " + longValue);
-        System.out.println("Float Value: " + floatValue);
-        System.out.println("Short Value: " + shortValue);
-        System.out.println("Bytes Value: " + Arrays.toString(bytesValue));
-        System.out.println("UUID Value: " + uuidValue);
+        // Read the values in the same order as they were written and use the values
     } catch (Exception e) {
         throw new RuntimeException(e);
     }
 }
 
-private static String generateRandomString(int length) {
-    String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    StringBuilder sb = new StringBuilder(length);
-    Random random = new Random();
-
-    for (int i = 0; i < length; i++) {
-        int index = random.nextInt(chars.length());
-        sb.append(chars.charAt(index));
-    }
-
-    return sb.toString();
-}
-
 public static IServerListener createServerListener() {
     return new ServerListenerAdapter() {
         @Override
-        public void onConnected(Socket socket) {
+        public void onConnected(Connection connection) {
             System.out.println("SERVER >> Client connected");
         }
 
         @Override
-        public void onDisconnected(Socket socket) {
+        public void onDisconnected(Connection connection) {
             System.out.println("SERVER >> Client disconnected");
         }
 
         @Override
-        public void onReceived(InetAddress address, int port, ProtocolType protocolType, Packet packet) {
-            System.out.println("SERVER >> Data received from " + address.getHostName() + ":" + port + " using " + protocolType.name() + "(" + packet.getData().length + " bytes" + ")");
+        public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) {
+            System.out.println("SERVER >> Data received from " + connection.getTcpSocket().getInetAddress() + ":" + (protocolType == ProtocolType.TCP ? connection.getTcpSocket().getPort() : connection.getUdpPort().get()) + " using " + protocolType.name() + "(" + packet.getData().length + " bytes" + ")");
             try {
                 processPacket(packet);
             } catch (Exception e) {
@@ -145,8 +115,8 @@ public static IServerListener createServerListener() {
         }
 
         @Override
-        public void onSent(InetAddress address, int port, ProtocolType protocolType, Packet packet) {
-            System.out.println("SERVER >> Data sent to " + address.getHostName() + ":" + port + " using " + protocolType.name() + "(" + packet.getData().length + " bytes" + ")");
+        public void onSent(Connection connection, ProtocolType protocolType, Packet packet) {
+            System.out.println("SERVER >> Data sent to " + connection.getTcpSocket().getInetAddress() + ":" + (protocolType == ProtocolType.TCP ? connection.getTcpSocket().getPort() : connection.getUdpPort().get()) + " using " + protocolType.name() + "(" + packet.getData().length + " bytes" + ")");
         }
     };
 }

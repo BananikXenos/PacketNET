@@ -3,6 +3,7 @@ package xyz.synse.packetnet.client;
 import xyz.synse.packetnet.client.listeners.IClientListener;
 import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.packets.Packet;
+import xyz.synse.packetnet.common.packets.PacketBuilder;
 
 import java.io.IOException;
 import java.net.*;
@@ -38,23 +39,43 @@ public class Client {
         this.tcpPort = tcpPort;
         this.udpPort = udpPort;
 
-        // Init tcp
+        // Initialize TCP connection
         tcpSocket = new Socket(serverAddress, tcpPort);
         tcpThread = new Thread(this::startTcpListener);
         tcpThread.start();
 
         udpListenerRunning = true;
-        // Init udp
+        // Initialize UDP connection
         udpSocket = new DatagramSocket();
         udpThread = new Thread(this::startUdpListener);
         udpThread.start();
+
+        // Send the UDP port packet to the server
+        sendUdpPortPacket(udpSocket.getLocalPort());
 
         // Notify listeners about the connection
         listeners.forEach(IClientListener::onConnected);
     }
 
     /**
+     * Sends the UDP port packet to the server.
+     *
+     * @param port The local UDP port to send.
+     * @throws IOException if an I/O error occurs while sending the packet.
+     */
+    private void sendUdpPortPacket(int port) throws IOException {
+        try (PacketBuilder packetBuilder = new PacketBuilder((short) -1000)) {
+            packetBuilder.withInt(port);
+            sendInternal(packetBuilder.build(), ProtocolType.TCP);
+        } catch (Exception e) {
+            throw new IOException("Failed sending the UDP port packet", e);
+        }
+    }
+
+    /**
      * Disconnects the client from the server.
+     *
+     * @throws IOException if an I/O error occurs during disconnection.
      */
     public void disconnect() throws IOException {
         if (tcpSocket != null && !tcpSocket.isClosed()) {
@@ -110,6 +131,9 @@ public class Client {
         this.listeners.remove(listener);
     }
 
+    /**
+     * Starts the TCP listener thread to receive data from the server.
+     */
     private void startTcpListener() {
         try {
             byte[] buffer = new byte[bufferSize];
@@ -126,6 +150,9 @@ public class Client {
         }
     }
 
+    /**
+     * Starts the UDP listener thread to receive data from the server.
+     */
     private void startUdpListener() {
         byte[] buffer = new byte[bufferSize];
 
@@ -150,31 +177,52 @@ public class Client {
      *
      * @param packet   The packet to send.
      * @param protocol The protocol to use (TCP or UDP).
+     * @throws IOException if an I/O error occurs while sending the packet.
      */
     public void send(Packet packet, ProtocolType protocol) throws IOException {
+        sendInternal(packet, protocol);
+        listeners.forEach(listener -> listener.onSent(protocol, packet));
+    }
+
+    /**
+     * Sends a packet to the server using the specified protocol.
+     *
+     * @param packet   The packet to send.
+     * @param protocol The protocol to use (TCP or UDP).
+     * @throws IOException if an I/O error occurs while sending the packet.
+     */
+    private void sendInternal(Packet packet, ProtocolType protocol) throws IOException {
         switch (protocol) {
-            case TCP -> sendTcp(packet);
-            case UDP -> sendUdp(packet);
+            case TCP -> sendInternalTcp(packet);
+            case UDP -> sendInternalUdp(packet);
             default -> System.out.println("Unsupported protocol: " + protocol);
         }
     }
 
-    private void sendTcp(Packet packet) throws IOException {
+    /**
+     * Sends a packet to the server using the TCP protocol.
+     *
+     * @param packet The packet to send.
+     * @throws IOException if an I/O error occurs while sending the packet.
+     */
+    private void sendInternalTcp(Packet packet) throws IOException {
         if (tcpSocket != null) {
             byte[] data = packet.toByteArray();
             tcpSocket.getOutputStream().write(data);
-
-            listeners.forEach(listener -> listener.onSent(ProtocolType.TCP, packet));
         }
     }
 
-    private void sendUdp(Packet packet) throws IOException {
+    /**
+     * Sends a packet to the server using the UDP protocol.
+     *
+     * @param packet The packet to send.
+     * @throws IOException if an I/O error occurs while sending the packet.
+     */
+    private void sendInternalUdp(Packet packet) throws IOException {
         if (udpSocket != null) {
             byte[] data = packet.toByteArray();
             DatagramPacket datagramPacket = new DatagramPacket(data, data.length, serverAddress, udpPort);
             udpSocket.send(datagramPacket);
-
-            listeners.forEach(listener -> listener.onSent(ProtocolType.UDP, packet));
         }
     }
 
