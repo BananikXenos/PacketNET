@@ -22,8 +22,20 @@ public class Client {
     private Thread tcpThread;
     private Thread udpThread;
 
+    /**
+     * Creates a new instance of the Client class.
+     *
+     * @param bufferSize The size of the buffer for receiving data.
+     */
     public Client(int bufferSize) {
         this.bufferSize = bufferSize;
+    }
+
+    /**
+     * Creates a new instance of the Client class with buffer size of 8192 bytes.
+     */
+    public Client() {
+        this(8192);
     }
 
     /**

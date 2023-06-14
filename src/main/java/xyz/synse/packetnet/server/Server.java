@@ -33,6 +33,13 @@ public class Server {
     }
 
     /**
+     * Creates a new instance of the Server class with buffer size of 8192 bytes.
+     */
+    public Server() {
+        this(8192);
+    }
+
+    /**
      * Starts the server on the specified TCP and UDP ports.
      *
      * @param tcpPort The TCP port to listen on.

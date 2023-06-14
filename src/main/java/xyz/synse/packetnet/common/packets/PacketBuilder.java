@@ -7,11 +7,13 @@ import java.util.UUID;
 
 public class PacketBuilder implements AutoCloseable {
     private final short id;
-    private final ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-    private final DataOutputStream out = new DataOutputStream(byteOut);
+    private final ByteArrayOutputStream byteOut;
+    private final DataOutputStream out;
 
     public PacketBuilder(short id) {
         this.id = id;
+        this.byteOut = new ByteArrayOutputStream();
+        this.out = new DataOutputStream(byteOut);
     }
 
     public PacketBuilder withBytes(byte[] data) {

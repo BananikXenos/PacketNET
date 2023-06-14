@@ -24,12 +24,12 @@ private static final String secretKey = "1F16hIQ3SjQ$k1!9";
 
 public static void main(String[] args) throws Exception {
     // Create and start the server
-    Server server = new Server(1024);
+    Server server = new Server();
     server.addListener(createServerListener());
     server.start(3300, 3301);
 
     // Create and connect the client to the server
-    Client client = new Client(1024);
+    Client client = new Client();
     client.addListener(createClientListener());
     client.connect("127.0.0.1", 3300, 3301);
 
