@@ -8,15 +8,15 @@ import xyz.synse.packetnet.common.packets.PacketBuilder;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Client {
     private final int bufferSize;
     private InetAddress serverAddress;
     private int tcpPort;
     private int udpPort;
-    private final List<ClientListener> listeners = new ArrayList<>();
+    private final List<ClientListener> listeners = new CopyOnWriteArrayList<>();
     private Socket tcpSocket;
     private DatagramSocket udpSocket;
     private Thread tcpThread;
