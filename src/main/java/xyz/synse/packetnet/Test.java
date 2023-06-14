@@ -22,14 +22,14 @@ public class Test {
 
     public static void main(String[] args) throws Exception {
         // Create and start the server
-        Server server = new Server();
-        server.addListener(createServerListener());
-        server.start(3300, 3301);
+        Server serverInstance = new Server();
+        serverInstance.addListener(createServerListener());
+        serverInstance.start(3300, 3301);
 
         // Create and connect the client to the server
-        Client client = new Client();
-        client.addListener(createClientListener());
-        client.connect("127.0.0.1", 3300, 3301);
+        Client clientInstance = new Client();
+        clientInstance.addListener(createClientListener());
+        clientInstance.connect("127.0.0.1", 3300, 3301);
 
         // Create a sample packet and encrypt, compress it
         Packet packet = createSamplePacket();
@@ -37,27 +37,27 @@ public class Test {
         Packet compressedPacket = PacketCompressor.compress(encryptedPacket, PacketCompressor.GZIP_COMPRESSOR);
 
         // Send the compressed packet using UDP and TCP
-        client.send(compressedPacket, ProtocolType.UDP);
-        client.send(compressedPacket, ProtocolType.TCP);
+        clientInstance.send(compressedPacket, ProtocolType.UDP);
+        clientInstance.send(compressedPacket, ProtocolType.TCP);
 
         // Wait for a few seconds
         Thread.sleep(3000L);
 
         // Broadcast the compressed packet to all connected clients using TCP & UDP
-        server.broadcast(ProtocolType.TCP, compressedPacket);
-        server.broadcast(ProtocolType.UDP, compressedPacket);
+        serverInstance.broadcast(ProtocolType.TCP, compressedPacket);
+        serverInstance.broadcast(ProtocolType.UDP, compressedPacket);
 
         // Wait for a second
         Thread.sleep(1000L);
 
         // Disconnect the client from the server
-        client.disconnect();
+        clientInstance.disconnect();
 
         // Wait for a second
         Thread.sleep(1000L);
 
         // Stop the server
-        server.stop();
+        serverInstance.stop();
     }
 
     public static Packet createSamplePacket() {

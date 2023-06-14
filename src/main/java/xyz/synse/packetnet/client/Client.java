@@ -12,7 +12,6 @@ import java.util.List;
 
 public class Client {
     private final int bufferSize;
-    private volatile boolean udpListenerRunning;
     private InetAddress serverAddress;
     private int tcpPort;
     private int udpPort;
@@ -32,7 +31,7 @@ public class Client {
     }
 
     /**
-     * Creates a new instance of the Client class with buffer size of 8192 bytes.
+     * Creates a new instance of the Client class with a buffer size of 8192 bytes.
      */
     public Client() {
         this(8192);
@@ -56,7 +55,6 @@ public class Client {
         tcpThread = new Thread(this::startTcpListener);
         tcpThread.start();
 
-        udpListenerRunning = true;
         // Initialize UDP connection
         udpSocket = new DatagramSocket();
         udpThread = new Thread(this::startUdpListener);
@@ -97,7 +95,6 @@ public class Client {
 
         if (udpSocket != null && !udpSocket.isClosed()) {
             udpSocket.close();
-            udpListenerRunning = false;
             udpSocket = null;
         }
 
@@ -149,9 +146,8 @@ public class Client {
     private void startTcpListener() {
         try {
             byte[] buffer = new byte[bufferSize];
-            int bytesRead;
 
-            while ((bytesRead = tcpSocket.getInputStream().read(buffer)) != -1) {
+            while (tcpSocket.getInputStream().read(buffer) != -1) {
                 Packet packet = Packet.fromByteArray(buffer);
                 listeners.forEach(iClientListener -> iClientListener.onReceived(ProtocolType.TCP, packet));
             }
@@ -168,7 +164,7 @@ public class Client {
     private void startUdpListener() {
         byte[] buffer = new byte[bufferSize];
 
-        while (udpListenerRunning && udpSocket != null && !Thread.interrupted()) {
+        while (udpSocket != null && !Thread.interrupted()) {
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
             try {
                 udpSocket.receive(packet);
