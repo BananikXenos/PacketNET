@@ -25,7 +25,11 @@ public class Connection {
         return udpPort;
     }
 
-    public void setUdpPort(Optional<Integer> udpPort) {
-        this.udpPort = udpPort;
+    public void setUdpPort(int udpPort) {
+        this.udpPort = Optional.of(udpPort);
+    }
+
+    public void removeUdpPort(){
+        this.udpPort = Optional.empty();
     }
 }
