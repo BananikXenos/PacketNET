@@ -1,6 +1,7 @@
 package xyz.synse.packetnet.common.packets;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 
 public class Packet {
     private final short id;
@@ -34,6 +35,15 @@ public class Packet {
         }
     }
 
+    public static Packet fromByteBuffer(ByteBuffer buffer) {
+        short id = buffer.getShort();
+        int len = buffer.getInt();
+        byte[] data = new byte[len];
+        buffer.get(data);
+
+        return new Packet(id, data);
+    }
+
     public static Packet fromByteArray(byte[] packet) {
         try (
                 ByteArrayInputStream byteIn = new ByteArrayInputStream(packet);
@@ -47,5 +57,9 @@ public class Packet {
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
+    }
+
+    public String getShortString() {
+        return "id: " + id + ", data: " + data.length + "bytes";
     }
 }
