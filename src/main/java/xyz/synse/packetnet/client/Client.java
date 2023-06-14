@@ -1,12 +1,13 @@
 package xyz.synse.packetnet.client;
 
-import xyz.synse.packetnet.client.listeners.IClientListener;
+import xyz.synse.packetnet.client.listeners.ClientListener;
 import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.packets.Packet;
 import xyz.synse.packetnet.common.packets.PacketBuilder;
 
 import java.io.IOException;
 import java.net.*;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,7 +16,7 @@ public class Client {
     private InetAddress serverAddress;
     private int tcpPort;
     private int udpPort;
-    private final List<IClientListener> listeners = new ArrayList<>();
+    private final List<ClientListener> listeners = new ArrayList<>();
     private Socket tcpSocket;
     private DatagramSocket udpSocket;
     private Thread tcpThread;
@@ -64,7 +65,7 @@ public class Client {
         sendUdpPortPacket(udpSocket.getLocalPort());
 
         // Notify listeners about the connection
-        listeners.forEach(IClientListener::onConnected);
+        listeners.forEach(ClientListener::onConnected);
     }
 
     /**
@@ -119,7 +120,7 @@ public class Client {
         }
 
         // Notify listeners about the disconnection
-        listeners.forEach(IClientListener::onDisconnected);
+        listeners.forEach(ClientListener::onDisconnected);
     }
 
     /**
@@ -127,7 +128,7 @@ public class Client {
      *
      * @param listener The listener to add.
      */
-    public void addListener(IClientListener listener) {
+    public void addListener(ClientListener listener) {
         this.listeners.add(listener);
     }
 
@@ -136,7 +137,7 @@ public class Client {
      *
      * @param listener The listener to remove.
      */
-    public void removeListener(IClientListener listener) {
+    public void removeListener(ClientListener listener) {
         this.listeners.remove(listener);
     }
 
@@ -145,10 +146,14 @@ public class Client {
      */
     private void startTcpListener() {
         try {
-            byte[] buffer = new byte[bufferSize];
+            ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
 
-            while (tcpSocket.getInputStream().read(buffer) != -1) {
-                Packet packet = Packet.fromByteArray(buffer);
+            while (tcpSocket.getInputStream().read(buffer.array()) != -1) {
+                buffer.rewind();
+
+                Packet packet = Packet.fromByteBuffer(buffer);
+                buffer.clear();
+
                 listeners.forEach(iClientListener -> iClientListener.onReceived(ProtocolType.TCP, packet));
             }
         } catch (SocketException ignored) {
@@ -162,15 +167,17 @@ public class Client {
      * Starts the UDP listener thread to receive data from the server.
      */
     private void startUdpListener() {
-        byte[] buffer = new byte[bufferSize];
+        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
 
         while (udpSocket != null && !Thread.interrupted()) {
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+            buffer.clear();
+
+            DatagramPacket packet = new DatagramPacket(buffer.array(), buffer.capacity());
             try {
                 udpSocket.receive(packet);
-                byte[] data = packet.getData();
+                buffer.rewind();
 
-                Packet constructedPacket = Packet.fromByteArray(data);
+                Packet constructedPacket = Packet.fromByteBuffer(buffer);
                 listeners.forEach(iClientListener -> iClientListener.onReceived(ProtocolType.UDP, constructedPacket));
             } catch (SocketException ignored) {
 

@@ -3,11 +3,13 @@ package xyz.synse.packetnet.server;
 import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.packets.Packet;
 import xyz.synse.packetnet.common.packets.PacketReader;
-import xyz.synse.packetnet.server.listeners.IServerListener;
+import xyz.synse.packetnet.server.listeners.ServerListener;
 
 import java.io.IOException;
 import java.net.*;
+import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -19,7 +21,7 @@ public class Server {
     private DatagramSocket udpSocket;
     private ServerSocket tcpSocket;
     private final Map<InetAddress, Connection> connections = new HashMap<>();
-    private final List<IServerListener> listeners = new ArrayList<>();
+    private final List<ServerListener> listeners = new CopyOnWriteArrayList<>();
     private ExecutorService executorService;
 
     /**
@@ -64,7 +66,7 @@ public class Server {
         executorService.execute(this::startUdpListener);
 
         running = true;
-        System.out.println("Server started.");
+        listeners.forEach(ServerListener::onStarted);
     }
 
     /**
@@ -86,7 +88,7 @@ public class Server {
         connections.clear();
 
         running = false;
-        System.out.println("Server stopped.");
+        listeners.forEach(ServerListener::onStopped);
     }
 
     /**
@@ -94,7 +96,7 @@ public class Server {
      *
      * @param listener The listener to add.
      */
-    public void addListener(IServerListener listener) {
+    public void addListener(ServerListener listener) {
         this.listeners.add(listener);
     }
 
@@ -103,7 +105,7 @@ public class Server {
      *
      * @param listener The listener to remove.
      */
-    public void removeListener(IServerListener listener) {
+    public void removeListener(ServerListener listener) {
         this.listeners.remove(listener);
     }
 
@@ -132,10 +134,10 @@ public class Server {
      * Starts the UDP listener thread to receive data from clients.
      */
     private void startUdpListener() {
-        byte[] buffer = new byte[bufferSize];
+        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
 
         while (!Thread.interrupted()) {
-            DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length);
+            DatagramPacket datagramPacket = new DatagramPacket(buffer.array(), buffer.capacity());
             try {
                 udpSocket.receive(datagramPacket);
                 InetAddress address = datagramPacket.getAddress();
@@ -147,7 +149,9 @@ public class Server {
                     continue;
                 }
 
-                Packet packet = Packet.fromByteArray(datagramPacket.getData());
+                buffer.rewind(); // Prepare buffer for reading
+
+                Packet packet = Packet.fromByteBuffer(buffer);
                 listeners.forEach(listener -> listener.onReceived(connection, ProtocolType.UDP, packet));
             } catch (SocketException e) {
                 // SocketException will be thrown when the socket is closed,
@@ -155,6 +159,8 @@ public class Server {
                 break;
             } catch (IOException e) {
                 e.printStackTrace();
+            } finally {
+                buffer.clear(); // Clear the buffer for the next iteration
             }
         }
     }
@@ -166,14 +172,16 @@ public class Server {
      */
     private void handleTcpClient(Connection connection) {
         try {
-            while (!Thread.interrupted()) {
-                byte[] buffer = new byte[bufferSize];
-                int bytesRead;
+            ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
 
+            while (!Thread.interrupted()) {
+                buffer.rewind(); // Rewind the buffer to overwrite the existing data
+                buffer.clear(); // Clear the buffer to make it ready for new data
+
+                int bytesRead;
                 try {
-                    bytesRead = connection.getTcpSocket().getInputStream().read(buffer);
+                    bytesRead = connection.getTcpSocket().getInputStream().read(buffer.array());
                 } catch (SocketException e) {
-                    // Handle disconnection scenario separately
                     if (e.getMessage().equals("Socket closed")) {
                         break; // Break the loop and proceed to clean up
                     } else {
@@ -185,13 +193,15 @@ public class Server {
                     break; // Break the loop when the client disconnects gracefully
                 }
 
-                Packet packet = Packet.fromByteArray(buffer);
+                buffer.rewind();
+
+                Packet packet = Packet.fromByteBuffer(buffer);
                 if (packet.getID() == (short) -1000) {
                     try (PacketReader packetReader = new PacketReader(packet)) {
                         int udpPort = packetReader.readInt();
 
                         connection.setUdpPort(Optional.of(udpPort));
-                        System.out.println("Established UDP Connection");
+                        listeners.forEach(listener -> listener.onUDPEstablished(connection));
                     } catch (Exception ignored) {
                         System.err.println("Malformed udp port packet");
                     }

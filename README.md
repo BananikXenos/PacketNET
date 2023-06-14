@@ -25,12 +25,18 @@ private static final String secretKey = "1F16hIQ3SjQ$k1!9";
 public static void main(String[] args) throws Exception {
     // Create and start the server
     Server serverInstance = new Server();
-    serverInstance.addListener(createServerListener());
+    serverInstance.addListener(new ServerListener() {
+        @Override
+        public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) {
+            super.onReceived(connection, protocolType, packet);
+            processPacket(packet);
+        }
+    });
     serverInstance.start(3300, 3301);
 
     // Create and connect the client to the server
     Client clientInstance = new Client();
-    clientInstance.addListener(createClientListener());
+    clientInstance.addListener(new ClientListener());
     clientInstance.connect("127.0.0.1", 3300, 3301);
 
     // Create a sample packet and encrypt, compress it
@@ -67,6 +73,7 @@ public static Packet createSamplePacket() {
         Random random = new Random();
 
         return builder
+                .withObject(new TestClass())
                 .withInt(random.nextInt())
                 .withString("Hello, World!")
                 .withBoolean(random.nextBoolean())
@@ -82,67 +89,24 @@ public static Packet createSamplePacket() {
     }
 }
 
-private static void processPacket(Packet packet) throws Exception {
-    Packet decompressedPacket = PacketCompressor.decompress(packet, PacketCompressor.GZIP_COMPRESSOR);
-    Packet decryptedPacket = PacketEncryptor.decrypt(decompressedPacket, secretKey);
-    try (PacketReader reader = new PacketReader(decryptedPacket)) {
-        // Read the values in the same order as they were written and use the values
-    } catch (Exception e) {
-        throw new RuntimeException(e);
+private static void processPacket(Packet packet) {
+    try {
+        Packet decompressedPacket = PacketCompressor.decompress(packet, PacketCompressor.GZIP_COMPRESSOR);
+        Packet decryptedPacket = PacketEncryptor.decrypt(decompressedPacket, secretKey);
+        try (PacketReader reader = new PacketReader(decryptedPacket)) {
+            // Read the values in the same order as they were written and use the values
+        }
+    } catch (Exception ex) {
+        ex.printStackTrace();
     }
 }
 
-public static IServerListener createServerListener() {
-    return new ServerListenerAdapter() {
-        @Override
-        public void onConnected(Connection connection) {
-            System.out.println("SERVER >> Client connected");
-        }
+public static class TestClass implements Serializable {
+    private final String hello = "Hello";
+    private final String world = "World";
 
-        @Override
-        public void onDisconnected(Connection connection) {
-            System.out.println("SERVER >> Client disconnected");
-        }
-
-        @Override
-        public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) {
-            System.out.println("SERVER >> Data received from " + connection.getTcpSocket().getInetAddress() + ":" + (protocolType == ProtocolType.TCP ? connection.getTcpSocket().getPort() : connection.getUdpPort().get()) + " using " + protocolType.name() + "(" + packet.getData().length + " bytes" + ")");
-            try {
-                processPacket(packet);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public void onSent(Connection connection, ProtocolType protocolType, Packet packet) {
-            System.out.println("SERVER >> Data sent to " + connection.getTcpSocket().getInetAddress() + ":" + (protocolType == ProtocolType.TCP ? connection.getTcpSocket().getPort() : connection.getUdpPort().get()) + " using " + protocolType.name() + "(" + packet.getData().length + " bytes" + ")");
-        }
-    };
-}
-
-public static IClientListener createClientListener() {
-    return new ClientListenerAdapter() {
-        @Override
-        public void onConnected() {
-            System.out.println("CLIENT >> Connected to server");
-        }
-
-        @Override
-        public void onDisconnected() {
-            System.out.println("CLIENT >> Disconnected from server");
-        }
-
-        @Override
-        public void onReceived(ProtocolType protocolType, Packet packet) {
-            System.out.println("CLIENT >> Data received using " + protocolType.name() + "(" + packet.getData().length + " bytes" + ")");
-        }
-
-        @Override
-        public void onSent(ProtocolType protocolType, Packet packet) {
-            System.out.println("CLIENT >> Data sent using " + protocolType.name() + "(" + packet.getData().length + " bytes" + ")");
-        }
-    };
+    public TestClass() {
+    }
 }
 ```
 ## Support
