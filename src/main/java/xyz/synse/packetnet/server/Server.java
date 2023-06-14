@@ -20,7 +20,7 @@ public class Server {
     private boolean running;
     private DatagramSocket udpSocket;
     private ServerSocket tcpSocket;
-    private final Map<InetAddress, Connection> connections = new HashMap<>();
+    private final List<Connection> connections = new CopyOnWriteArrayList<>();
     private final List<ServerListener> listeners = new CopyOnWriteArrayList<>();
     private ExecutorService executorService;
 
@@ -117,7 +117,7 @@ public class Server {
             try {
                 Socket clientSocket = tcpSocket.accept();
                 Connection connection = new Connection(clientSocket);
-                connections.put(clientSocket.getInetAddress(), connection);
+                connections.add(connection);
                 listeners.forEach(listener -> listener.onConnected(connection));
                 executorService.submit(() -> handleTcpClient(connection));
             } catch (SocketException ignored) {
@@ -143,8 +143,10 @@ public class Server {
                 InetAddress address = datagramPacket.getAddress();
                 int port = datagramPacket.getPort();
 
-                Connection connection = connections.get(address);
-                if (connection == null || !connection.getUdpPort().isPresent() || connection.getUdpPort().get() != port) {
+                // Check each connection with the same address and matching UDP port
+                Connection connection = connections.stream().filter(conn -> conn.getUdpPort().isPresent() && conn.getTcpSocket().getInetAddress().equals(address) && conn.getUdpPort().get() == port).findFirst().orElse(null);
+
+                if (connection == null) {
                     System.err.println("Packet from unknown connection");
                     continue;
                 }
@@ -164,6 +166,7 @@ public class Server {
             }
         }
     }
+
 
     /**
      * Handles the TCP client connection and processes incoming packets.
@@ -200,10 +203,11 @@ public class Server {
                     try (PacketReader packetReader = new PacketReader(packet)) {
                         int udpPort = packetReader.readInt();
 
-                        connection.setUdpPort(Optional.of(udpPort));
+                        connection.setUdpPort(udpPort);
                         listeners.forEach(listener -> listener.onUDPEstablished(connection));
                     } catch (Exception ignored) {
                         System.err.println("Malformed udp port packet");
+                        connection.removeUdpPort();
                     }
                     continue;
                 }
@@ -228,14 +232,9 @@ public class Server {
      */
     public void send(Connection connection, Packet packet, ProtocolType protocol) throws IOException {
         switch (protocol) {
-            case TCP:
-                sendTcp(connection, packet);
-                break;
-            case UDP:
-                sendUdp(connection, packet);
-                break;
-            default:
-                System.out.println("Unsupported protocol: " + protocol);
+            case TCP -> sendTcp(connection, packet);
+            case UDP -> sendUdp(connection, packet);
+            default -> System.out.println("Unsupported protocol: " + protocol);
         }
     }
 
@@ -263,12 +262,11 @@ public class Server {
      * @throws IOException if an I/O error occurs while sending the packet.
      */
     private void sendUdp(Connection connection, Packet packet) throws IOException {
-        Optional<Integer> udpPortOptional = connection.getUdpPort();
-        if (udpPortOptional.isEmpty()) {
+        if (connection.getUdpPort().isEmpty()) {
             throw new IOException("No UDP connection established");
         }
 
-        int udpPort = udpPortOptional.get();
+        int udpPort = connection.getUdpPort().get();
         if (udpSocket != null) {
             byte[] data = packet.toByteArray();
             DatagramPacket datagramPacket = new DatagramPacket(data, 0, data.length, connection.getTcpSocket().getInetAddress(), udpPort);
@@ -285,8 +283,8 @@ public class Server {
      * @throws IOException if an I/O error occurs while broadcasting the packet.
      */
     public void broadcast(ProtocolType protocol, Packet packet) throws IOException {
-        for (Connection connection : connections.values()) {
-            if (protocol == ProtocolType.UDP && !connection.getUdpPort().isPresent())
+        for (Connection connection : connections) {
+            if (protocol == ProtocolType.UDP && connection.getUdpPort().isEmpty())
                 continue;
 
             send(connection, packet, protocol);
@@ -317,6 +315,6 @@ public class Server {
      * @return The list of connections.
      */
     public Collection<Connection> getConnections() {
-        return connections.values();
+        return connections;
     }
 }

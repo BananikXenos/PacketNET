@@ -25,7 +25,7 @@ public class ServerListener {
     }
 
     public void onUDPEstablished(Connection connection) {
-        System.out.println("[" + KDebug.getCallerClassShortName() + "] Established UDP Connection on port " + connection.getUdpPort().get() + " (" + connection.getTcpSocket().getInetAddress() + ":" + connection.getTcpSocket().getPort() + ")");
+        System.out.println("[" + KDebug.getCallerClassShortName() + "] Established UDP Connection on port " + connection.getUdpPort() + " (" + connection.getTcpSocket().getInetAddress() + ":" + connection.getTcpSocket().getPort() + ")");
     }
 
     public void onStarted() {
