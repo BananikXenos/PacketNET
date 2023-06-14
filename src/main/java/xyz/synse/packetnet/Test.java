@@ -14,6 +14,7 @@ import xyz.synse.packetnet.server.Server;
 import xyz.synse.packetnet.server.listeners.IServerListener;
 import xyz.synse.packetnet.server.listeners.ServerListenerAdapter;
 
+import java.io.Serializable;
 import java.util.Random;
 import java.util.UUID;
 
@@ -65,6 +66,7 @@ public class Test {
             Random random = new Random();
 
             return builder
+                    .withObject(new TestClass())
                     .withInt(random.nextInt())
                     .withString("Hello, World!")
                     .withBoolean(random.nextBoolean())
@@ -87,6 +89,14 @@ public class Test {
             // Read the values in the same order as they were written and use the values
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static class TestClass implements Serializable {
+        private String hello = "Hello";
+        private String world = "World";
+
+        public TestClass() {
         }
     }
 

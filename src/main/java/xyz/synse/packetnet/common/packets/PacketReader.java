@@ -3,6 +3,8 @@ package xyz.synse.packetnet.common.packets;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.util.Objects;
 import java.util.UUID;
 
 public class PacketReader implements AutoCloseable {
@@ -61,6 +63,19 @@ public class PacketReader implements AutoCloseable {
         return new UUID(mostSignificantBits, leastSignificantBits);
     }
 
+    public <T> T readObject() throws IOException, ClassNotFoundException {
+        byte[] data = readBytes();
+        
+        try(
+                ByteArrayInputStream byteIn = new ByteArrayInputStream(data);
+                ObjectInputStream objIn = new ObjectInputStream(byteIn);
+                ){
+            Object obj = objIn.readObject();
+             
+            return ((T) obj);
+        }
+    }
+    
     @Override
     public void close() throws Exception {
         byteIn.close();

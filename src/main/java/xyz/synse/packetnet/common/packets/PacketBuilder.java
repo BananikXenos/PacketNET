@@ -1,8 +1,6 @@
 package xyz.synse.packetnet.common.packets;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.UUID;
 
 public class PacketBuilder implements AutoCloseable {
@@ -122,6 +120,24 @@ public class PacketBuilder implements AutoCloseable {
         }
 
         return this;
+    }
+
+    public PacketBuilder withObject(Object obj) {
+        if (!(obj instanceof Serializable))
+            throw new RuntimeException("Object doesn't implement the java Serializable");
+
+        byte[] data = new byte[0];
+        try (
+                ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+                ObjectOutputStream objOut = new ObjectOutputStream(byteOut);
+        ) {
+            objOut.writeObject(obj);
+            data = byteOut.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        return withBytes(data);
     }
 
     public Packet build() {
