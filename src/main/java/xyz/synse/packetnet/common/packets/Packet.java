@@ -21,18 +21,13 @@ public class Packet {
     }
 
     public byte[] toByteArray() {
-        try (
-                ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-                DataOutputStream out = new DataOutputStream(byteOut)
-        ) {
-            out.writeShort(id);
-            out.writeInt(data.length);
-            out.write(data);
+        ByteBuffer buffer = ByteBuffer.allocate(Short.BYTES + Integer.BYTES + data.length);
 
-            return byteOut.toByteArray();
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
+        buffer.putShort(id);
+        buffer.putInt(data.length);
+        buffer.put(data);
+
+        return buffer.array();
     }
 
     public static Packet fromByteBuffer(ByteBuffer buffer) {
@@ -44,22 +39,7 @@ public class Packet {
         return new Packet(id, data);
     }
 
-    public static Packet fromByteArray(byte[] packet) {
-        try (
-                ByteArrayInputStream byteIn = new ByteArrayInputStream(packet);
-                DataInputStream dataIn = new DataInputStream(byteIn);
-        ) {
-            short id = dataIn.readShort();
-            int len = dataIn.readInt();
-            byte[] data = dataIn.readNBytes(len);
-
-            return new Packet(id, data);
-        } catch (IOException ex) {
-            throw new RuntimeException(ex);
-        }
-    }
-
     public String getShortString() {
-        return "id: " + id + ", data: " + data.length + "bytes";
+        return String.format("id: %s, data: %d bytes", id, data.length);
     }
 }

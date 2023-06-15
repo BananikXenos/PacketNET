@@ -1,6 +1,7 @@
 package xyz.synse.packetnet.common.packets;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.util.UUID;
 
 public class PacketBuilder implements AutoCloseable {
@@ -14,140 +15,92 @@ public class PacketBuilder implements AutoCloseable {
         this.out = new DataOutputStream(byteOut);
     }
 
-    public PacketBuilder withBytes(byte[] data) {
+    public PacketBuilder withBytes(byte[] data) throws IOException {
         return withBytes(data, true);
     }
 
-    public PacketBuilder withBytes(byte[] data, boolean writeSize) {
-        try {
-            if (writeSize)
-                out.writeInt(data.length);
+    public PacketBuilder withBytes(byte[] data, boolean writeSize) throws IOException {
+        if (writeSize)
+            out.writeInt(data.length);
 
-            out.write(data);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        out.write(data);
 
         return this;
     }
 
-    public PacketBuilder withByte(byte b) {
-        try {
-            out.writeByte(b);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public PacketBuilder withByte(byte b) throws IOException {
+        out.writeByte(b);
 
         return this;
     }
 
-    public PacketBuilder withBoolean(boolean b) {
-        try {
-            out.writeBoolean(b);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public PacketBuilder withBoolean(boolean b) throws IOException {
+        out.writeBoolean(b);
 
         return this;
     }
 
-    public PacketBuilder withString(String utf) {
-        try {
-            out.writeUTF(utf);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public PacketBuilder withString(String utf) throws IOException {
+        byte[] bytes = utf.getBytes("UTF-8");
+        out.writeInt(bytes.length);
+        out.write(bytes);
 
         return this;
     }
 
-    public PacketBuilder withInt(int i) {
-        try {
-            out.writeInt(i);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public PacketBuilder withInt(int i) throws IOException {
+        out.writeInt(i);
 
         return this;
     }
 
-    public PacketBuilder withLong(long l) {
-        try {
-            out.writeLong(l);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public PacketBuilder withLong(long l) throws IOException {
+        out.writeLong(l);
 
         return this;
     }
 
-    public PacketBuilder withFloat(float f) {
-        try {
-            out.writeFloat(f);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public PacketBuilder withFloat(float f) throws IOException {
+        out.writeFloat(f);
 
         return this;
     }
 
-    public PacketBuilder withDouble(double d) {
-        try {
-            out.writeDouble(d);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public PacketBuilder withDouble(double d) throws IOException {
+        out.writeDouble(d);
 
         return this;
     }
 
-    public PacketBuilder withShort(short sh) {
-        try {
-            out.writeShort(sh);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public PacketBuilder withShort(short sh) throws IOException {
+        out.writeShort(sh);
 
         return this;
     }
 
-    public PacketBuilder withUUID(UUID uuid) {
-        try {
-            out.writeLong(uuid.getMostSignificantBits());
-            out.writeLong(uuid.getLeastSignificantBits());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    public PacketBuilder withUUID(UUID uuid) throws IOException {
+        out.writeLong(uuid.getMostSignificantBits());
+        out.writeLong(uuid.getLeastSignificantBits());
 
         return this;
     }
 
-    public PacketBuilder withObject(Object obj) {
+    public PacketBuilder withObject(Object obj) throws IOException {
         if (!(obj instanceof Serializable))
-            throw new RuntimeException("Object doesn't implement the java Serializable");
+            throw new RuntimeException("Object doesn't implement java.io.Serializable");
 
-        byte[] data = new byte[0];
-        try (
-                ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-                ObjectOutputStream objOut = new ObjectOutputStream(byteOut);
-        ) {
+        try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+             ObjectOutputStream objOut = new ObjectOutputStream(byteOut)) {
+
             objOut.writeObject(obj);
-            data = byteOut.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+            byte[] bytes = byteOut.toByteArray();
+            return withBytes(bytes);
         }
-
-        return withBytes(data);
     }
 
     public Packet build() {
-        try {
-            byte[] data = byteOut.toByteArray();
-
-            return new Packet(id, data);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        byte[] data = byteOut.toByteArray();
+        return new Packet(id, data);
     }
 
     @Override
