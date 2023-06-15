@@ -1,6 +1,7 @@
 package xyz.synse.packetnet.server;
 
 import xyz.synse.packetnet.common.ProtocolType;
+import xyz.synse.packetnet.common.Utils;
 import xyz.synse.packetnet.common.packets.Packet;
 import xyz.synse.packetnet.common.packets.PacketReader;
 import xyz.synse.packetnet.server.listeners.ServerListener;
@@ -14,7 +15,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Server {
-    private final int bufferSize;
+    private final int readBufferSize;
+    private final int writeBufferSize;
     private int tcpPort;
     private int udpPort;
     private boolean running;
@@ -27,10 +29,12 @@ public class Server {
     /**
      * Creates a new instance of the Server class.
      *
-     * @param bufferSize The size of the buffer for receiving data.
+     * @param readBufferSize The size of the buffer for receiving data.
+     * @param writeBufferSize The size of the buffer for sending data.
      */
-    public Server(int bufferSize) {
-        this.bufferSize = bufferSize;
+    public Server(int readBufferSize, int writeBufferSize) {
+        this.readBufferSize = readBufferSize;
+        this.writeBufferSize = writeBufferSize;
         running = false;
     }
 
@@ -38,7 +42,7 @@ public class Server {
      * Creates a new instance of the Server class with buffer size of 8192 bytes.
      */
     public Server() {
-        this(8192);
+        this(8192, 8192);
     }
 
     /**
@@ -134,7 +138,7 @@ public class Server {
      * Starts the UDP listener thread to receive data from clients.
      */
     private void startUdpListener() {
-        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+        ByteBuffer buffer = ByteBuffer.allocate(readBufferSize);
 
         while (!Thread.interrupted()) {
             DatagramPacket datagramPacket = new DatagramPacket(buffer.array(), buffer.capacity());
@@ -175,7 +179,7 @@ public class Server {
      */
     private void handleTcpClient(Connection connection) {
         try {
-            ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+            ByteBuffer buffer = ByteBuffer.allocate(readBufferSize);
 
             while (!Thread.interrupted()) {
                 buffer.rewind(); // Rewind the buffer to overwrite the existing data
@@ -218,7 +222,7 @@ public class Server {
             e.printStackTrace();
         }
 
-        connections.remove(connection.getTcpSocket().getInetAddress());
+        connections.remove(connection);
         listeners.forEach(listener -> listener.onDisconnected(connection));
     }
 
@@ -231,9 +235,22 @@ public class Server {
      * @throws IOException if an I/O error occurs while sending the packet.
      */
     public void send(Connection connection, Packet packet, ProtocolType protocol) throws IOException {
+        sendInternal(connection, packet, protocol);
+        listeners.forEach(listener -> listener.onSent(connection, protocol, packet));
+    }
+
+    /**
+     * Sends data to a specific client using the specified protocol.
+     *
+     * @param connection The client's connection object.
+     * @param packet     The packet to send.
+     * @param protocol   The protocol to use (TCP or UDP).
+     * @throws IOException if an I/O error occurs while sending the packet.
+     */
+    private void sendInternal(Connection connection, Packet packet, ProtocolType protocol) throws IOException {
         switch (protocol) {
-            case TCP -> sendTcp(connection, packet);
-            case UDP -> sendUdp(connection, packet);
+            case TCP -> sendInternalTcp(connection, packet);
+            case UDP -> sendInternalUdp(connection, packet);
             default -> System.out.println("Unsupported protocol: " + protocol);
         }
     }
@@ -245,12 +262,15 @@ public class Server {
      * @param packet     The packet to send.
      * @throws IOException if an I/O error occurs while sending the packet.
      */
-    private void sendTcp(Connection connection, Packet packet) throws IOException {
+    private void sendInternalTcp(Connection connection, Packet packet) throws IOException {
         Socket tcpSocket = connection.getTcpSocket();
         if (tcpSocket != null && tcpSocket.isConnected()) {
-            byte[] data = packet.toByteArray();
+            byte[] data = Utils.expandByteArray(packet.toByteArray(), writeBufferSize);
+
+            if(data.length > writeBufferSize)
+                throw new RuntimeException("The size of the packet is bigger than the limit. " + data.length + " > " + writeBufferSize);
+
             tcpSocket.getOutputStream().write(data);
-            listeners.forEach(listener -> listener.onSent(connection, ProtocolType.TCP, packet));
         }
     }
 
@@ -261,17 +281,20 @@ public class Server {
      * @param packet     The packet to send.
      * @throws IOException if an I/O error occurs while sending the packet.
      */
-    private void sendUdp(Connection connection, Packet packet) throws IOException {
+    private void sendInternalUdp(Connection connection, Packet packet) throws IOException {
         if (connection.getUdpPort().isEmpty()) {
             throw new IOException("No UDP connection established");
         }
 
         int udpPort = connection.getUdpPort().get();
         if (udpSocket != null) {
-            byte[] data = packet.toByteArray();
+            byte[] data = Utils.expandByteArray(packet.toByteArray(), writeBufferSize);
+
+            if(data.length > writeBufferSize)
+                throw new RuntimeException("The size of the packet is bigger than the limit. " + data.length + " > " + writeBufferSize);
+
             DatagramPacket datagramPacket = new DatagramPacket(data, 0, data.length, connection.getTcpSocket().getInetAddress(), udpPort);
             udpSocket.send(datagramPacket);
-            listeners.forEach(listener -> listener.onSent(connection, ProtocolType.UDP, packet));
         }
     }
 

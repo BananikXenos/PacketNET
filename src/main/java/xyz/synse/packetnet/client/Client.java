@@ -2,6 +2,7 @@ package xyz.synse.packetnet.client;
 
 import xyz.synse.packetnet.client.listeners.ClientListener;
 import xyz.synse.packetnet.common.ProtocolType;
+import xyz.synse.packetnet.common.Utils;
 import xyz.synse.packetnet.common.packets.Packet;
 import xyz.synse.packetnet.common.packets.PacketBuilder;
 
@@ -12,7 +13,8 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Client {
-    private final int bufferSize;
+    private final int readBufferSize;
+    private final int writeBufferSize;
     private InetAddress serverAddress;
     private int tcpPort;
     private int udpPort;
@@ -25,17 +27,19 @@ public class Client {
     /**
      * Creates a new instance of the Client class.
      *
-     * @param bufferSize The size of the buffer for receiving data.
+     * @param readBufferSize The size of the buffer for receiving data.
+     * @param writeBufferSize The size of the buffer for sending data.
      */
-    public Client(int bufferSize) {
-        this.bufferSize = bufferSize;
+    public Client(int readBufferSize, int writeBufferSize) {
+        this.readBufferSize = readBufferSize;
+        this.writeBufferSize = writeBufferSize;
     }
 
     /**
      * Creates a new instance of the Client class with a buffer size of 8192 bytes.
      */
     public Client() {
-        this(8192);
+        this(8192, 8192);
     }
 
     /**
@@ -146,7 +150,7 @@ public class Client {
      */
     private void startTcpListener() {
         try {
-            ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+            ByteBuffer buffer = ByteBuffer.allocate(readBufferSize);
 
             while (tcpSocket.getInputStream().read(buffer.array()) != -1) {
                 buffer.rewind();
@@ -167,7 +171,7 @@ public class Client {
      * Starts the UDP listener thread to receive data from the server.
      */
     private void startUdpListener() {
-        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+        ByteBuffer buffer = ByteBuffer.allocate(readBufferSize);
 
         while (udpSocket != null && !Thread.interrupted()) {
             buffer.clear();
@@ -222,7 +226,11 @@ public class Client {
      */
     private void sendInternalTcp(Packet packet) throws IOException {
         if (tcpSocket != null) {
-            byte[] data = packet.toByteArray();
+            byte[] data = Utils.expandByteArray(packet.toByteArray(), writeBufferSize);
+
+            if(data.length > writeBufferSize)
+                throw new RuntimeException("The size of the packet is bigger than the limit. " + data.length + " > " + writeBufferSize);
+
             tcpSocket.getOutputStream().write(data);
         }
     }
@@ -235,7 +243,11 @@ public class Client {
      */
     private void sendInternalUdp(Packet packet) throws IOException {
         if (udpSocket != null) {
-            byte[] data = packet.toByteArray();
+            byte[] data = Utils.expandByteArray(packet.toByteArray(), writeBufferSize);
+
+            if(data.length > writeBufferSize)
+                throw new RuntimeException("The size of the packet is bigger than the limit. " + data.length + " > " + writeBufferSize);
+
             DatagramPacket datagramPacket = new DatagramPacket(data, data.length, serverAddress, udpPort);
             udpSocket.send(datagramPacket);
         }
