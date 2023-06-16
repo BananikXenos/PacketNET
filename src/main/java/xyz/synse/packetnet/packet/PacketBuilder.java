@@ -1,6 +1,6 @@
-package xyz.synse.packetnet.common.packets;
+package xyz.synse.packetnet.packet;
 
-import xyz.synse.packetnet.common.security.exceptions.ChecksumCalculationException;
+import xyz.synse.packetnet.common.checksum.exceptions.ChecksumCalculationException;
 
 import java.io.*;
 import java.util.UUID;

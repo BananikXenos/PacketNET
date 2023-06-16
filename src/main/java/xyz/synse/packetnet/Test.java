@@ -5,13 +5,14 @@ import xyz.synse.packetnet.client.listeners.ClientListener;
 import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.compression.PacketCompressor;
 import xyz.synse.packetnet.common.encryption.PacketEncryptor;
-import xyz.synse.packetnet.common.packets.Packet;
-import xyz.synse.packetnet.common.packets.PacketBuilder;
-import xyz.synse.packetnet.common.packets.PacketReader;
+import xyz.synse.packetnet.packet.Packet;
+import xyz.synse.packetnet.packet.PacketBuilder;
+import xyz.synse.packetnet.packet.PacketReader;
 import xyz.synse.packetnet.server.Connection;
 import xyz.synse.packetnet.server.Server;
 import xyz.synse.packetnet.server.listeners.ServerListener;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Random;
 import java.util.UUID;
@@ -24,8 +25,7 @@ public class Test {
         Server serverInstance = new Server();
         serverInstance.addListener(new ServerListener() {
             @Override
-            public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) {
-                super.onReceived(connection, protocolType, packet);
+            public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) throws IOException {
                 processPacket(packet);
             }
         });
@@ -59,7 +59,7 @@ public class Test {
         Thread.sleep(1000L);
 
         // Disconnect the client from the server
-        clientInstance.disconnect();
+        clientInstance.close();
 
         // Wait for a second
         Thread.sleep(1000L);

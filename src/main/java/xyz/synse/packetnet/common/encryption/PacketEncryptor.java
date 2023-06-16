@@ -1,6 +1,6 @@
 package xyz.synse.packetnet.common.encryption;
 
-import xyz.synse.packetnet.common.packets.Packet;
+import xyz.synse.packetnet.packet.Packet;
 
 public class PacketEncryptor {
     public static Packet encrypt(Packet packet, String key) throws Exception {

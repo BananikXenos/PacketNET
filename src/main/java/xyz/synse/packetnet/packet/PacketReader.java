@@ -1,10 +1,9 @@
-package xyz.synse.packetnet.common.packets;
+package xyz.synse.packetnet.packet;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.util.Objects;
 import java.util.UUID;
 
 public class PacketReader implements AutoCloseable {
@@ -90,7 +89,7 @@ public class PacketReader implements AutoCloseable {
 
 
     @Override
-    public void close() throws Exception {
+    public void close() throws IOException {
         byteIn.close();
         in.close();
     }

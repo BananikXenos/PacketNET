@@ -1,10 +1,6 @@
 package xyz.synse.packetnet.common;
 
-import java.util.zip.CRC32;
-import java.util.zip.Checksum;
-
 public class Utils {
-
     public static byte[] expandByteArray(byte[] originalArray, int newSize) {
         if (newSize <= originalArray.length) {
             return originalArray;

@@ -1,10 +1,10 @@
-package xyz.synse.packetnet.common.packets;
+package xyz.synse.packetnet.packet;
 
 import xyz.synse.packetnet.common.objects.Tuple;
-import xyz.synse.packetnet.common.security.exceptions.ChecksumCalculationException;
-import xyz.synse.packetnet.common.security.exceptions.ChecksumException;
-import xyz.synse.packetnet.common.security.exceptions.ChecksumMismatchException;
-import xyz.synse.packetnet.common.security.SHA256Checksum;
+import xyz.synse.packetnet.common.checksum.exceptions.ChecksumCalculationException;
+import xyz.synse.packetnet.common.checksum.exceptions.ChecksumException;
+import xyz.synse.packetnet.common.checksum.exceptions.ChecksumMismatchException;
+import xyz.synse.packetnet.common.checksum.SHA256Checksum;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -89,17 +89,8 @@ public class Packet {
         return packet;
     }
 
-    public String getShortString() {
-        return String.format("id: %s, data: %d bytes", id, data.length);
-    }
-
     @Override
     public String toString() {
-        return "Packet{" +
-                "id=" + id +
-                ", data=" + Arrays.toString(data) +
-                ", checksum=" + SHA256Checksum.checksumToString(getProvidedChecksum()) +
-                ", calculatedChecksum=" + SHA256Checksum.checksumToString(getCalculatedChecksum()) +
-                '}';
+        return String.format("id: %s, data: %d bytes", id, data.length);
     }
 }

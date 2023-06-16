@@ -27,8 +27,7 @@ public static void main(String[] args) throws Exception {
     Server serverInstance = new Server();
     serverInstance.addListener(new ServerListener() {
         @Override
-        public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) {
-            super.onReceived(connection, protocolType, packet);
+        public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) throws IOException {
             processPacket(packet);
         }
     });
@@ -45,8 +44,11 @@ public static void main(String[] args) throws Exception {
     Packet compressedPacket = PacketCompressor.compress(encryptedPacket, PacketCompressor.GZIP_COMPRESSOR);
 
     // Send the compressed packet using UDP and TCP
-    clientInstance.send(compressedPacket, ProtocolType.UDP);
-    clientInstance.send(compressedPacket, ProtocolType.TCP);
+    for(int i = 0; i < 1000; i++) {
+        clientInstance.send(compressedPacket, ProtocolType.UDP);
+        clientInstance.send(compressedPacket, ProtocolType.TCP);
+        Thread.sleep(10);
+    }
 
     // Wait for a few seconds
     Thread.sleep(3000L);
@@ -59,7 +61,7 @@ public static void main(String[] args) throws Exception {
     Thread.sleep(1000L);
 
     // Disconnect the client from the server
-    clientInstance.disconnect();
+    clientInstance.close();
 
     // Wait for a second
     Thread.sleep(1000L);
@@ -73,6 +75,7 @@ public static Packet createSamplePacket() {
         Random random = new Random();
 
         return builder
+                .withEnum(TestEnum.TWO)
                 .withObject(new TestClass())
                 .withInt(random.nextInt())
                 .withString("Hello, World!")
@@ -99,6 +102,12 @@ private static void processPacket(Packet packet) {
     } catch (Exception ex) {
         ex.printStackTrace();
     }
+}
+
+public static enum TestEnum {
+    ONE,
+    TWO,
+    THREE
 }
 
 public static class TestClass implements Serializable {

@@ -3,9 +3,9 @@ package compression;
 import org.junit.jupiter.api.Test;
 import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.compression.PacketCompressor;
-import xyz.synse.packetnet.common.packets.Packet;
-import xyz.synse.packetnet.common.packets.PacketBuilder;
-import xyz.synse.packetnet.common.security.exceptions.ChecksumCalculationException;
+import xyz.synse.packetnet.packet.Packet;
+import xyz.synse.packetnet.packet.PacketBuilder;
+import xyz.synse.packetnet.common.checksum.exceptions.ChecksumCalculationException;
 
 import java.io.IOException;
 import java.util.Random;
