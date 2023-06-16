@@ -3,8 +3,8 @@ package xyz.synse.packetnet.common.compression;
 import xyz.synse.packetnet.common.compression.compressors.DeflaterCompressor;
 import xyz.synse.packetnet.common.compression.compressors.GZipCompressor;
 import xyz.synse.packetnet.common.compression.compressors.LZ4Compressor;
-import xyz.synse.packetnet.common.packets.Packet;
-import xyz.synse.packetnet.common.security.exceptions.ChecksumCalculationException;
+import xyz.synse.packetnet.packet.Packet;
+import xyz.synse.packetnet.common.checksum.exceptions.ChecksumCalculationException;
 
 import java.io.IOException;
 

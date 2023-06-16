@@ -1,6 +1,6 @@
-package xyz.synse.packetnet.common.security;
+package xyz.synse.packetnet.common.checksum;
 
-import xyz.synse.packetnet.common.security.exceptions.ChecksumCalculationException;
+import xyz.synse.packetnet.common.checksum.exceptions.ChecksumCalculationException;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

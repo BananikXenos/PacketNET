@@ -3,9 +3,9 @@ package tcp;
 import org.junit.jupiter.api.Test;
 import xyz.synse.packetnet.client.Client;
 import xyz.synse.packetnet.common.ProtocolType;
-import xyz.synse.packetnet.common.packets.Packet;
-import xyz.synse.packetnet.common.packets.PacketBuilder;
-import xyz.synse.packetnet.common.security.exceptions.ChecksumCalculationException;
+import xyz.synse.packetnet.packet.Packet;
+import xyz.synse.packetnet.packet.PacketBuilder;
+import xyz.synse.packetnet.common.checksum.exceptions.ChecksumCalculationException;
 import xyz.synse.packetnet.server.Connection;
 import xyz.synse.packetnet.server.Server;
 import xyz.synse.packetnet.server.listeners.ServerListener;
@@ -53,7 +53,7 @@ public class SmallTCPTest {
 
         // Close connections
         Thread.sleep(1000L);
-        client.disconnect();
+        client.close();
         server.stop();
 
         // Validate hash codes
