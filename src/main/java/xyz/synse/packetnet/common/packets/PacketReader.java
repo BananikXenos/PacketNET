@@ -71,11 +71,24 @@ public class PacketReader implements AutoCloseable {
                 ObjectInputStream objIn = new ObjectInputStream(byteIn);
                 ){
             Object obj = objIn.readObject();
-             
-            return ((T) obj);
+
+            @SuppressWarnings("unchecked")
+            T result = (T) obj;
+            return result;
         }
     }
-    
+
+    public <T extends Enum<?>> T readEnum(Class<T> enumClass) throws IOException {
+        int ordinal = in.readInt();
+        T[] enumConstants = enumClass.getEnumConstants();
+        if (ordinal >= 0 && ordinal < enumConstants.length) {
+            return enumConstants[ordinal];
+        } else {
+            throw new IllegalArgumentException("Invalid ordinal value for enum " + enumClass.getName());
+        }
+    }
+
+
     @Override
     public void close() throws Exception {
         byteIn.close();

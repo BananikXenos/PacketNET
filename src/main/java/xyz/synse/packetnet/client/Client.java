@@ -5,6 +5,7 @@ import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.Utils;
 import xyz.synse.packetnet.common.packets.Packet;
 import xyz.synse.packetnet.common.packets.PacketBuilder;
+import xyz.synse.packetnet.common.security.ChecksumMismatchException;
 
 import java.io.IOException;
 import java.net.*;
@@ -162,7 +163,7 @@ public class Client {
             }
         } catch (SocketException ignored) {
 
-        } catch (IOException e) {
+        } catch (IOException | ChecksumMismatchException e) {
             e.printStackTrace();
         }
     }
@@ -183,9 +184,9 @@ public class Client {
 
                 Packet constructedPacket = Packet.fromByteBuffer(buffer);
                 listeners.forEach(iClientListener -> iClientListener.onReceived(ProtocolType.UDP, constructedPacket));
-            } catch (SocketException ignored) {
+            } catch (SocketException | NullPointerException ignored) {
 
-            } catch (IOException e) {
+            } catch (IOException | ChecksumMismatchException e) {
                 e.printStackTrace();
             }
         }

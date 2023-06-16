@@ -41,9 +41,7 @@ public class PacketBuilder implements AutoCloseable {
     }
 
     public PacketBuilder withString(String utf) throws IOException {
-        byte[] bytes = utf.getBytes("UTF-8");
-        out.writeInt(bytes.length);
-        out.write(bytes);
+        out.writeUTF(utf);
 
         return this;
     }
@@ -85,6 +83,12 @@ public class PacketBuilder implements AutoCloseable {
         return this;
     }
 
+    public PacketBuilder withEnum(Enum<?> enu) throws IOException {
+        out.writeInt(enu.ordinal());
+
+        return this;
+    }
+
     public PacketBuilder withObject(Object obj) throws IOException {
         if (!(obj instanceof Serializable))
             throw new RuntimeException("Object doesn't implement java.io.Serializable");
@@ -104,7 +108,7 @@ public class PacketBuilder implements AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() throws IOException {
         out.close();
         byteOut.close();
     }

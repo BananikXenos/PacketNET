@@ -42,8 +42,11 @@ public class Test {
         Packet compressedPacket = PacketCompressor.compress(encryptedPacket, PacketCompressor.GZIP_COMPRESSOR);
 
         // Send the compressed packet using UDP and TCP
-        clientInstance.send(compressedPacket, ProtocolType.UDP);
-        clientInstance.send(compressedPacket, ProtocolType.TCP);
+        for(int i = 0; i < 1000; i++) {
+            clientInstance.send(compressedPacket, ProtocolType.UDP);
+            clientInstance.send(compressedPacket, ProtocolType.TCP);
+            Thread.sleep(10);
+        }
 
         // Wait for a few seconds
         Thread.sleep(3000L);
@@ -70,6 +73,7 @@ public class Test {
             Random random = new Random();
 
             return builder
+                    .withEnum(TestEnum.TWO)
                     .withObject(new TestClass())
                     .withInt(random.nextInt())
                     .withString("Hello, World!")
@@ -96,6 +100,12 @@ public class Test {
         } catch (Exception ex) {
             ex.printStackTrace();
         }
+    }
+
+    public static enum TestEnum {
+        ONE,
+        TWO,
+        THREE
     }
 
     public static class TestClass implements Serializable {

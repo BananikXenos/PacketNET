@@ -4,6 +4,7 @@ import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.Utils;
 import xyz.synse.packetnet.common.packets.Packet;
 import xyz.synse.packetnet.common.packets.PacketReader;
+import xyz.synse.packetnet.common.security.ChecksumMismatchException;
 import xyz.synse.packetnet.server.listeners.ServerListener;
 
 import java.io.IOException;
@@ -163,7 +164,7 @@ public class Server {
                 // SocketException will be thrown when the socket is closed,
                 // so we can safely break the loop in this case
                 break;
-            } catch (IOException e) {
+            } catch (IOException | ChecksumMismatchException e) {
                 e.printStackTrace();
             } finally {
                 buffer.clear(); // Clear the buffer for the next iteration
@@ -218,7 +219,7 @@ public class Server {
 
                 listeners.forEach(listener -> listener.onReceived(connection, ProtocolType.TCP, packet));
             }
-        } catch (IOException e) {
+        } catch (IOException | ChecksumMismatchException e) {
             e.printStackTrace();
         }
 
