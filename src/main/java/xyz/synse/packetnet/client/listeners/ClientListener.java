@@ -24,4 +24,9 @@ public class ClientListener {
         System.out.printf("[%s] Connected%n",
                 Utils.getCallerClassName());
     }
+
+    public void onUDPEstablished(){
+        System.out.printf("[%s] UDP connection established%n",
+                Utils.getCallerClassName());
+    }
 }

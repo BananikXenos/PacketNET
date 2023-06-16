@@ -5,7 +5,8 @@ import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.Utils;
 import xyz.synse.packetnet.common.packets.Packet;
 import xyz.synse.packetnet.common.packets.PacketBuilder;
-import xyz.synse.packetnet.common.security.ChecksumMismatchException;
+import xyz.synse.packetnet.common.packets.PacketReader;
+import xyz.synse.packetnet.common.security.exceptions.ChecksumException;
 
 import java.io.IOException;
 import java.net.*;
@@ -24,6 +25,7 @@ public class Client {
     private DatagramSocket udpSocket;
     private Thread tcpThread;
     private Thread udpThread;
+    private boolean udpConnected = false;
 
     /**
      * Creates a new instance of the Client class.
@@ -52,6 +54,7 @@ public class Client {
      * @throws IOException if an I/O error occurs during the connection.
      */
     public void connect(String serverAddress, int tcpPort, int udpPort) throws IOException {
+        this.udpConnected = false;
         this.serverAddress = InetAddress.getByName(serverAddress);
         this.tcpPort = tcpPort;
         this.udpPort = udpPort;
@@ -99,6 +102,7 @@ public class Client {
             tcpSocket = null;
         }
 
+        udpConnected = false;
         if (udpSocket != null && !udpSocket.isClosed()) {
             udpSocket.close();
             udpSocket = null;
@@ -159,11 +163,29 @@ public class Client {
                 Packet packet = Packet.fromByteBuffer(buffer);
                 buffer.clear();
 
+                if (packet.getID() == (short) -1000) {
+                    try (PacketReader packetReader = new PacketReader(packet)) {
+                        int udpPort = packetReader.readInt();
+
+                        if(udpPort != udpSocket.getLocalPort()) {
+                            System.err.println("Invalid udp port assigned.");
+                            sendUdpPortPacket(udpSocket.getLocalPort());
+                            continue;
+                        }
+
+                        this.udpConnected = true;
+                        listeners.forEach(ClientListener::onUDPEstablished);
+                    } catch (Exception ignored) {
+                        System.err.println("Malformed udp port confirmation packet");
+                    }
+                    continue;
+                }
+
                 listeners.forEach(iClientListener -> iClientListener.onReceived(ProtocolType.TCP, packet));
             }
         } catch (SocketException ignored) {
 
-        } catch (IOException | ChecksumMismatchException e) {
+        } catch (IOException | ChecksumException e) {
             e.printStackTrace();
         }
     }
@@ -186,7 +208,7 @@ public class Client {
                 listeners.forEach(iClientListener -> iClientListener.onReceived(ProtocolType.UDP, constructedPacket));
             } catch (SocketException | NullPointerException ignored) {
 
-            } catch (IOException | ChecksumMismatchException e) {
+            } catch (IOException | ChecksumException e) {
                 e.printStackTrace();
             }
         }
@@ -243,6 +265,9 @@ public class Client {
      * @throws IOException if an I/O error occurs while sending the packet.
      */
     private void sendInternalUdp(Packet packet) throws IOException {
+        if(!udpConnected)
+            throw new RuntimeException("UDP connection not established yet");
+
         if (udpSocket != null) {
             byte[] data = Utils.expandByteArray(packet.toByteArray(), writeBufferSize);
 

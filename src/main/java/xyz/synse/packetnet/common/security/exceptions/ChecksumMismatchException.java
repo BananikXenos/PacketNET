@@ -1,6 +1,8 @@
-package xyz.synse.packetnet.common.security;
+package xyz.synse.packetnet.common.security.exceptions;
 
-public class ChecksumMismatchException extends Exception {
+import xyz.synse.packetnet.common.security.SHA256Checksum;
+
+public class ChecksumMismatchException extends ChecksumException {
     private final String expectedChecksum;
     private final String calculatedChecksum;
 

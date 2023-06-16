@@ -1,7 +1,8 @@
 package xyz.synse.packetnet.common.packets;
 
+import xyz.synse.packetnet.common.security.exceptions.ChecksumCalculationException;
+
 import java.io.*;
-import java.nio.ByteBuffer;
 import java.util.UUID;
 
 public class PacketBuilder implements AutoCloseable {
@@ -102,7 +103,7 @@ public class PacketBuilder implements AutoCloseable {
         }
     }
 
-    public Packet build() {
+    public Packet build() throws ChecksumCalculationException {
         byte[] data = byteOut.toByteArray();
         return new Packet(id, data);
     }

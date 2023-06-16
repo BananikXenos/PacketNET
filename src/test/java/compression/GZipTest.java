@@ -5,6 +5,7 @@ import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.compression.PacketCompressor;
 import xyz.synse.packetnet.common.packets.Packet;
 import xyz.synse.packetnet.common.packets.PacketBuilder;
+import xyz.synse.packetnet.common.security.exceptions.ChecksumCalculationException;
 
 import java.io.IOException;
 import java.util.Random;
@@ -14,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 public class GZipTest {
     @Test
-    public void testGZipCompressionAndDecompression() throws IOException {
+    public void testGZipCompressionAndDecompression() throws IOException, ChecksumCalculationException {
         int[] packetSizes = {1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576};
 
         for (int size : packetSizes) {

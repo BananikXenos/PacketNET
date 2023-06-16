@@ -4,7 +4,7 @@ import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.Utils;
 import xyz.synse.packetnet.common.packets.Packet;
 import xyz.synse.packetnet.common.packets.PacketReader;
-import xyz.synse.packetnet.common.security.ChecksumMismatchException;
+import xyz.synse.packetnet.common.security.exceptions.ChecksumException;
 import xyz.synse.packetnet.server.listeners.ServerListener;
 
 import java.io.IOException;
@@ -164,7 +164,7 @@ public class Server {
                 // SocketException will be thrown when the socket is closed,
                 // so we can safely break the loop in this case
                 break;
-            } catch (IOException | ChecksumMismatchException e) {
+            } catch (IOException | ChecksumException e) {
                 e.printStackTrace();
             } finally {
                 buffer.clear(); // Clear the buffer for the next iteration
@@ -209,6 +209,7 @@ public class Server {
                         int udpPort = packetReader.readInt();
 
                         connection.setUdpPort(udpPort);
+                        sendInternal(connection, packet, ProtocolType.TCP);
                         listeners.forEach(listener -> listener.onUDPEstablished(connection));
                     } catch (Exception ignored) {
                         System.err.println("Malformed udp port packet");
@@ -219,7 +220,7 @@ public class Server {
 
                 listeners.forEach(listener -> listener.onReceived(connection, ProtocolType.TCP, packet));
             }
-        } catch (IOException | ChecksumMismatchException e) {
+        } catch (IOException | ChecksumException e) {
             e.printStackTrace();
         }
 

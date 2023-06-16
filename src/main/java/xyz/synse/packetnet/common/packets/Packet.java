@@ -1,6 +1,9 @@
 package xyz.synse.packetnet.common.packets;
 
-import xyz.synse.packetnet.common.security.ChecksumMismatchException;
+import xyz.synse.packetnet.common.objects.Tuple;
+import xyz.synse.packetnet.common.security.exceptions.ChecksumCalculationException;
+import xyz.synse.packetnet.common.security.exceptions.ChecksumException;
+import xyz.synse.packetnet.common.security.exceptions.ChecksumMismatchException;
 import xyz.synse.packetnet.common.security.SHA256Checksum;
 
 import java.io.*;
@@ -10,20 +13,23 @@ import java.util.Arrays;
 public class Packet {
     private final short id;
     private final byte[] data;
-    private final byte[] providedChecksum;
-    private final byte[] calculatedChecksum;
+    private final Tuple<byte[], byte[]> checksums = new Tuple<>();
 
-    public Packet(short id, byte[] data) {
+    public Packet(short id, byte[] data) throws ChecksumCalculationException {
         this.id = id;
         this.data = data;
-        this.calculatedChecksum = this.providedChecksum = SHA256Checksum.calculateChecksum(data);
+
+        byte[] calculatedChecksum = SHA256Checksum.calculateChecksum(data);
+        this.checksums.setA(calculatedChecksum);
+        this.checksums.setB(calculatedChecksum);
     }
 
-    public Packet(short id, byte[] data, byte[] providedChecksum) {
+    public Packet(short id, byte[] data, byte[] providedChecksum) throws ChecksumCalculationException {
         this.id = id;
         this.data = data;
-        this.providedChecksum = providedChecksum;
-        this.calculatedChecksum = SHA256Checksum.calculateChecksum(data);
+
+        this.checksums.setA(providedChecksum);
+        this.checksums.setB(SHA256Checksum.calculateChecksum(data));
     }
 
     public byte[] getData() {
@@ -35,27 +41,24 @@ public class Packet {
     }
 
     public byte[] getProvidedChecksum() {
-        return providedChecksum;
+        return this.checksums.getA();
     }
 
     public byte[] getCalculatedChecksum() {
-        return calculatedChecksum;
+        return this.checksums.getB();
     }
 
     public boolean validateChecksum() {
-        return Arrays.equals(calculatedChecksum, providedChecksum);
+        return Arrays.equals(getCalculatedChecksum(), getProvidedChecksum());
     }
 
-    public byte[] toByteArray() throws IOException {
-        if(calculatedChecksum == null)
-            throw new IOException("Invalid checksum calculated");
-
-        ByteBuffer buffer = ByteBuffer.allocate(Short.BYTES + Integer.BYTES + calculatedChecksum.length + Integer.BYTES + data.length);
+    public byte[] toByteArray() {
+        ByteBuffer buffer = ByteBuffer.allocate(Short.BYTES + Integer.BYTES + getCalculatedChecksum().length + Integer.BYTES + data.length);
 
         buffer.putShort(id);
 
-        buffer.putInt(calculatedChecksum.length);
-        buffer.put(calculatedChecksum);
+        buffer.putInt(getCalculatedChecksum().length);
+        buffer.put(getCalculatedChecksum());
 
         buffer.putInt(data.length);
         buffer.put(data);
@@ -63,7 +66,7 @@ public class Packet {
         return buffer.array();
     }
 
-    public static Packet fromByteBuffer(ByteBuffer buffer) throws ChecksumMismatchException, IOException {
+    public static Packet fromByteBuffer(ByteBuffer buffer) throws ChecksumException, IOException {
         // Read packet id
         short id = buffer.getShort();
 
@@ -95,8 +98,8 @@ public class Packet {
         return "Packet{" +
                 "id=" + id +
                 ", data=" + Arrays.toString(data) +
-                ", checksum=" + SHA256Checksum.checksumToString(providedChecksum) +
-                ", calculatedChecksum=" + SHA256Checksum.checksumToString(calculatedChecksum) +
+                ", checksum=" + SHA256Checksum.checksumToString(getProvidedChecksum()) +
+                ", calculatedChecksum=" + SHA256Checksum.checksumToString(getCalculatedChecksum()) +
                 '}';
     }
 }
