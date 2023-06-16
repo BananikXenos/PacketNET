@@ -6,10 +6,11 @@ PacketNET is a Java library for network communication using custom packet-based 
 
 ## Features
 
-- Support for both UDP and TCP protocols
-- Packet compression using LZ4 or GZip algorithm
+- Support for both TCP and UDP protocols
+- Packet compression using LZ4, Deflater or GZip algorithm
 - Packet encryption using AES256
-- Server and client implementations
+- Efficient Server and client implementations
+- Thread Management
 - Event-based listener system
 - Easy-to-use API for creating and processing packets
 ## Installation
