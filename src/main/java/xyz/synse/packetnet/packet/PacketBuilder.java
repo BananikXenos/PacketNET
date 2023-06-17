@@ -1,116 +1,180 @@
 package xyz.synse.packetnet.packet;
 
-import xyz.synse.packetnet.common.checksum.exceptions.ChecksumCalculationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.UUID;
 
-public class PacketBuilder implements AutoCloseable {
-    private final short id;
+public class PacketBuilder {
+    private final Logger logger = LoggerFactory.getLogger(PacketBuilder.class);
+    private short packetID;
     private final ByteArrayOutputStream byteOut;
     private final DataOutputStream out;
+    private boolean isBuilt;
 
-    public PacketBuilder(short id) {
-        this.id = id;
+    public PacketBuilder() {
         this.byteOut = new ByteArrayOutputStream();
         this.out = new DataOutputStream(byteOut);
+        this.isBuilt = false;
     }
 
-    public PacketBuilder withBytes(byte[] data) throws IOException {
-        return withBytes(data, true);
+    public synchronized PacketBuilder withID(short id) {
+        checkBuilt();
+        this.packetID = id;
+        return this;
     }
 
-    public PacketBuilder withBytes(byte[] data, boolean writeSize) throws IOException {
-        if (writeSize)
+    private void checkBuilt() {
+        if (isBuilt) throw new IllegalStateException("Packet already built");
+    }
+
+    public synchronized PacketBuilder withBytes(byte[] data) {
+        checkBuilt();
+        try {
             out.writeInt(data.length);
-
-        out.write(data);
-
+            out.write(data);
+        } catch (final IOException e) {
+            logger.error("Unable to add bytes: {} : {}", e.getClass(), e.getMessage());
+        }
         return this;
     }
 
-    public PacketBuilder withByte(byte b) throws IOException {
-        out.writeByte(b);
-
+    public synchronized PacketBuilder withByte(byte b) {
+        checkBuilt();
+        try {
+            out.writeByte(b);
+        } catch (final IOException e) {
+            logger.error("Unable to add byte: {} : {}", e.getClass(), e.getMessage());
+        }
         return this;
     }
 
-    public PacketBuilder withBoolean(boolean b) throws IOException {
-        out.writeBoolean(b);
-
+    public synchronized PacketBuilder withBoolean(boolean b) {
+        checkBuilt();
+        try {
+            out.writeBoolean(b);
+        } catch (final IOException e) {
+            logger.error("Unable to add boolean: {} : {}", e.getClass(), e.getMessage());
+        }
         return this;
     }
 
-    public PacketBuilder withString(String utf) throws IOException {
-        out.writeUTF(utf);
-
+    public synchronized PacketBuilder withString(String utf) {
+        checkBuilt();
+        try {
+            out.writeUTF(utf);
+        } catch (final IOException e) {
+            logger.error("Unable to add String: {} : {}", e.getClass(), e.getMessage());
+        }
         return this;
     }
 
-    public PacketBuilder withInt(int i) throws IOException {
-        out.writeInt(i);
-
+    public synchronized PacketBuilder withInt(int i) {
+        checkBuilt();
+        try {
+            out.writeInt(i);
+        } catch (final IOException e) {
+            logger.error("Unable to add int: {} : {}", e.getClass(), e.getMessage());
+        }
         return this;
     }
 
-    public PacketBuilder withLong(long l) throws IOException {
-        out.writeLong(l);
-
+    public synchronized PacketBuilder withLong(long l) {
+        checkBuilt();
+        try {
+            out.writeLong(l);
+        } catch (final IOException e) {
+            logger.error("Unable to add long: {} : {}", e.getClass(), e.getMessage());
+        }
         return this;
     }
 
-    public PacketBuilder withFloat(float f) throws IOException {
-        out.writeFloat(f);
-
+    public synchronized PacketBuilder withFloat(float f) {
+        checkBuilt();
+        try {
+            out.writeFloat(f);
+        } catch (final IOException e) {
+            logger.error("Unable to add float: {} : {}", e.getClass(), e.getMessage());
+        }
         return this;
     }
 
-    public PacketBuilder withDouble(double d) throws IOException {
-        out.writeDouble(d);
-
+    public synchronized PacketBuilder withDouble(double d) {
+        checkBuilt();
+        try {
+            out.writeDouble(d);
+        } catch (final IOException e) {
+            logger.error("Unable to add double: {} : {}", e.getClass(), e.getMessage());
+        }
         return this;
     }
 
-    public PacketBuilder withShort(short sh) throws IOException {
-        out.writeShort(sh);
-
+    public synchronized PacketBuilder withShort(short sh) {
+        checkBuilt();
+        try {
+            out.writeShort(sh);
+        } catch (final IOException e) {
+            logger.error("Unable to add short: {} : {}", e.getClass(), e.getMessage());
+        }
         return this;
     }
 
-    public PacketBuilder withUUID(UUID uuid) throws IOException {
-        out.writeLong(uuid.getMostSignificantBits());
-        out.writeLong(uuid.getLeastSignificantBits());
-
+    public synchronized PacketBuilder withUUID(UUID uuid) {
+        checkBuilt();
+        try {
+            out.writeLong(uuid.getMostSignificantBits());
+            out.writeLong(uuid.getLeastSignificantBits());
+        } catch (final IOException e) {
+            logger.error("Unable to add UUID: {} : {}", e.getClass(), e.getMessage());
+        }
         return this;
     }
 
-    public PacketBuilder withEnum(Enum<?> enu) throws IOException {
-        out.writeInt(enu.ordinal());
-
+    public synchronized PacketBuilder withEnum(Enum<?> enu) {
+        checkBuilt();
+        try {
+            out.writeInt(enu.ordinal());
+        } catch (final IOException e) {
+            logger.error("Unable to add Enum: {} : {}", e.getClass(), e.getMessage());
+        }
         return this;
     }
 
-    public PacketBuilder withObject(Object obj) throws IOException {
+    public synchronized PacketBuilder withObject(Object obj) {
+        checkBuilt();
+
         if (!(obj instanceof Serializable))
             throw new RuntimeException("Object doesn't implement java.io.Serializable");
 
-        try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-             ObjectOutputStream objOut = new ObjectOutputStream(byteOut)) {
+        try {
+            try (ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+                 ObjectOutputStream objOut = new ObjectOutputStream(byteOut)) {
 
-            objOut.writeObject(obj);
-            byte[] bytes = byteOut.toByteArray();
-            return withBytes(bytes);
+                objOut.writeObject(obj);
+                byte[] bytes = byteOut.toByteArray();
+                withBytes(bytes);
+            }
+        } catch (final IOException e) {
+            logger.error("Unable to add Object: {} : {}", e.getClass(), e.getMessage());
         }
+
+        return this;
     }
 
-    public Packet build() throws ChecksumCalculationException {
-        byte[] data = byteOut.toByteArray();
-        return new Packet(id, data);
-    }
+    public synchronized Packet build() {
+        checkBuilt();
+        isBuilt = true;
 
-    @Override
-    public void close() throws IOException {
-        out.close();
-        byteOut.close();
+        try {
+            out.close();
+        } catch (final IOException e) {
+            logger.error("Unable to build packet: {} : {}", e.getClass(), e.getMessage());
+        }
+
+        return new Packet(
+                packetID,
+                byteOut.toByteArray()
+        );
     }
 }

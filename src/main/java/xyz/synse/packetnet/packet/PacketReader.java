@@ -15,54 +15,54 @@ public class PacketReader implements AutoCloseable {
         this.in = new DataInputStream(byteIn);
     }
 
-    public byte[] readBytes() throws IOException {
+    public synchronized byte[] readBytes() throws IOException {
         int size = in.readInt();
         return in.readNBytes(size);
     }
 
-    public byte[] readBytes(int len) throws IOException {
+    public synchronized byte[] readBytes(int len) throws IOException {
         return in.readNBytes(len);
     }
 
-    public byte readByte() throws IOException {
+    public synchronized byte readByte() throws IOException {
         return in.readByte();
     }
 
-    public boolean readBoolean() throws IOException {
+    public synchronized boolean readBoolean() throws IOException {
         return in.readBoolean();
     }
 
-    public String readString() throws IOException {
+    public synchronized String readString() throws IOException {
         return in.readUTF();
     }
 
-    public int readInt() throws IOException {
+    public synchronized int readInt() throws IOException {
         return in.readInt();
     }
 
-    public long readLong() throws IOException {
+    public synchronized long readLong() throws IOException {
         return in.readLong();
     }
 
-    public float readFloat() throws IOException {
+    public synchronized float readFloat() throws IOException {
         return in.readFloat();
     }
 
-    public double readDouble() throws IOException {
+    public synchronized double readDouble() throws IOException {
         return in.readDouble();
     }
 
-    public short readShort() throws IOException {
+    public synchronized short readShort() throws IOException {
         return in.readShort();
     }
 
-    public UUID readUUID() throws IOException {
+    public synchronized UUID readUUID() throws IOException {
         long mostSignificantBits = in.readLong();
         long leastSignificantBits = in.readLong();
         return new UUID(mostSignificantBits, leastSignificantBits);
     }
 
-    public <T> T readObject() throws IOException, ClassNotFoundException {
+    public synchronized <T> T readObject() throws IOException, ClassNotFoundException {
         byte[] data = readBytes();
         
         try(
@@ -77,7 +77,7 @@ public class PacketReader implements AutoCloseable {
         }
     }
 
-    public <T extends Enum<?>> T readEnum(Class<T> enumClass) throws IOException {
+    public synchronized <T extends Enum<?>> T readEnum(Class<T> enumClass) throws IOException {
         int ordinal = in.readInt();
         T[] enumConstants = enumClass.getEnumConstants();
         if (ordinal >= 0 && ordinal < enumConstants.length) {
@@ -89,7 +89,7 @@ public class PacketReader implements AutoCloseable {
 
 
     @Override
-    public void close() throws IOException {
+    public synchronized void close() throws IOException {
         byteIn.close();
         in.close();
     }

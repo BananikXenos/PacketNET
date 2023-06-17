@@ -1,35 +1,29 @@
 package xyz.synse.packetnet.packet;
 
-import xyz.synse.packetnet.common.objects.Tuple;
-import xyz.synse.packetnet.common.checksum.exceptions.ChecksumCalculationException;
-import xyz.synse.packetnet.common.checksum.exceptions.ChecksumException;
-import xyz.synse.packetnet.common.checksum.exceptions.ChecksumMismatchException;
-import xyz.synse.packetnet.common.checksum.SHA256Checksum;
-
-import java.io.*;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class Packet {
     private final short id;
     private final byte[] data;
-    private final Tuple<byte[], byte[]> checksums = new Tuple<>();
+    private final int providedHashcode;
+    private final int hashcode;
 
-    public Packet(short id, byte[] data) throws ChecksumCalculationException {
+    public Packet(short id, byte[] data) {
         this.id = id;
         this.data = data;
 
-        byte[] calculatedChecksum = SHA256Checksum.calculateChecksum(data);
-        this.checksums.setA(calculatedChecksum);
-        this.checksums.setB(calculatedChecksum);
+        this.hashcode = Arrays.hashCode(data);
+        this.providedHashcode = Arrays.hashCode(data);
     }
 
-    public Packet(short id, byte[] data, byte[] providedChecksum) throws ChecksumCalculationException {
+    public Packet(short id, byte[] data, int providedChecksum) {
         this.id = id;
         this.data = data;
 
-        this.checksums.setA(providedChecksum);
-        this.checksums.setB(SHA256Checksum.calculateChecksum(data));
+        this.providedHashcode = providedChecksum;
+        this.hashcode = Arrays.hashCode(data);
     }
 
     public byte[] getData() {
@@ -40,25 +34,24 @@ public class Packet {
         return id;
     }
 
-    public byte[] getProvidedChecksum() {
-        return this.checksums.getA();
+    public int getHashcode() {
+        return hashcode;
     }
 
-    public byte[] getCalculatedChecksum() {
-        return this.checksums.getB();
+    public int getProvidedHashcode() {
+        return providedHashcode;
     }
 
-    public boolean validateChecksum() {
-        return Arrays.equals(getCalculatedChecksum(), getProvidedChecksum());
+    public boolean validateHashcode() {
+        return hashcode == providedHashcode;
     }
 
     public byte[] toByteArray() {
-        ByteBuffer buffer = ByteBuffer.allocate(Short.BYTES + Integer.BYTES + getCalculatedChecksum().length + Integer.BYTES + data.length);
+        ByteBuffer buffer = ByteBuffer.allocate(Short.BYTES + Integer.BYTES + Integer.BYTES + data.length);
 
         buffer.putShort(id);
 
-        buffer.putInt(getCalculatedChecksum().length);
-        buffer.put(getCalculatedChecksum());
+        buffer.putInt(hashcode);
 
         buffer.putInt(data.length);
         buffer.put(data);
@@ -66,27 +59,19 @@ public class Packet {
         return buffer.array();
     }
 
-    public static Packet fromByteBuffer(ByteBuffer buffer) throws ChecksumException, IOException {
+    public static Packet fromByteBuffer(ByteBuffer buffer) throws IOException {
         // Read packet id
         short id = buffer.getShort();
 
         // Read packet checksum
-        int checksumLen = buffer.getInt();
-        byte[] originalChecksum = new byte[checksumLen];
-        buffer.get(originalChecksum);
+        int hashcode = buffer.getInt();
 
         // Read packet data
         int len = buffer.getInt();
         byte[] data = new byte[len];
         buffer.get(data);
 
-        Packet packet = new Packet(id, data, originalChecksum);
-
-        // Compare checksum
-        if (!packet.validateChecksum())
-            throw new ChecksumMismatchException(packet.getProvidedChecksum(), packet.getCalculatedChecksum());
-
-        return packet;
+        return new Packet(id, data, hashcode);
     }
 
     @Override

@@ -5,7 +5,6 @@ import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.compression.PacketCompressor;
 import xyz.synse.packetnet.packet.Packet;
 import xyz.synse.packetnet.packet.PacketBuilder;
-import xyz.synse.packetnet.common.checksum.exceptions.ChecksumCalculationException;
 
 import java.io.IOException;
 import java.util.Random;
@@ -15,15 +14,15 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 public class LZ4Test {
     @Test
-    public void testLZ4CompressionAndDecompression() throws IOException, ChecksumCalculationException {
+    public void testLZ4CompressionAndDecompression() throws IOException {
         int[] packetSizes = {1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576};
 
         for (int size : packetSizes) {
             // Create the original packet
-            PacketBuilder packetBuilder = new PacketBuilder((short) 2);
             byte[] bytes = new byte[size];
             new Random().nextBytes(bytes);
-            Packet originalPacket = packetBuilder
+            Packet originalPacket = new PacketBuilder()
+                    .withID((short) 2)
                     .withString("Hello, World!")
                     .withEnum(ProtocolType.TCP)
                     .withDouble(69.420D)
@@ -34,7 +33,6 @@ public class LZ4Test {
                     .withUUID(UUID.randomUUID())
                     .withBytes(bytes)
                     .build();
-            packetBuilder.close();
 
             // Compress the packet
             Packet compressedPacket = PacketCompressor.compress(originalPacket, PacketCompressor.LZ4_COMPRESSOR);

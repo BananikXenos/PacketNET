@@ -8,7 +8,6 @@ import xyz.synse.packetnet.common.Utils;
 import xyz.synse.packetnet.packet.Packet;
 import xyz.synse.packetnet.packet.PacketBuilder;
 import xyz.synse.packetnet.packet.PacketReader;
-import xyz.synse.packetnet.common.checksum.exceptions.ChecksumException;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -123,7 +122,7 @@ public class Client {
             } catch (final SocketException | EOFException e) {
                 close();
                 break;
-            } catch (IOException | ChecksumException e) {
+            } catch (IOException e) {
                 logger.error("Error in TCP listener thread: {} :", e.getClass(), e);
                 close();
                 break;
@@ -154,7 +153,7 @@ public class Client {
             } catch (final SocketException | EOFException e) {
                 close();
                 break;
-            } catch (IOException | ChecksumException e) {
+            } catch (IOException e) {
                 logger.error("Error in UDP listener thread: {} :", e.getClass(), e);
                 close();
                 break;
@@ -217,15 +216,12 @@ public class Client {
     public synchronized boolean reconnectUDP() {
         if (udpSocket == null || udpSocket.isClosed()) return false;
 
-        try (PacketBuilder packetBuilder = new PacketBuilder((short) -1000)) {
-            packetBuilder.withInt(udpSocket.getLocalPort());
-            send(packetBuilder.build(), ProtocolType.TCP);
+        Packet portPacket = new PacketBuilder()
+                .withID((short) -1000)
+                .withInt(udpSocket.getLocalPort())
+                .build();
 
-            return true;
-        } catch (Exception e) {
-            logger.warn("Failed sending the UDP port packet", e);
-            return false;
-        }
+        return send(portPacket, ProtocolType.TCP);
     }
 
     /**

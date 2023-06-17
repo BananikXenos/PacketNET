@@ -6,13 +6,13 @@ import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.Utils;
 import xyz.synse.packetnet.packet.Packet;
 import xyz.synse.packetnet.packet.PacketReader;
-import xyz.synse.packetnet.common.checksum.exceptions.ChecksumException;
 import xyz.synse.packetnet.server.listeners.ServerListener;
 
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static xyz.synse.packetnet.threading.ThreadManager.launchThread;
@@ -166,7 +166,7 @@ public class Server {
             } catch (final SocketException ignored) {
                 stop();
                 break;
-            } catch (final IOException | ChecksumException e) {
+            } catch (final IOException e) {
                 logger.error("Error in UDP listener thread: {} :", e.getClass(), e);
                 stop();
                 break;
@@ -204,7 +204,7 @@ public class Server {
                 fireReceivedListeners(connection, packet);
             } catch (final SocketException ignored) {
                 break;
-            } catch (final IOException | ChecksumException e) {
+            } catch (final IOException e) {
                 logger.error("Error in TCP listener thread: {} :", e.getClass(), e);
                 stop();
                 break;

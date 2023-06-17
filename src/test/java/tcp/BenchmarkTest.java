@@ -52,12 +52,12 @@ public class BenchmarkTest
     {
         final int amount = 1000;
 
-        final Packet packet = new PacketBuilder((short)1).build();
+        final Packet packet = new PacketBuilder().build();
 
         server.addListener(new ServerListener() {
             @Override
             public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) throws IOException {
-                assertTrue(packet.validateChecksum());
+                assertTrue(packet.validateHashcode());
             }
         });
 
@@ -76,17 +76,17 @@ public class BenchmarkTest
     {
         final int amount = 1000;
 
-        final byte[] randomData = new byte[5000];
+        final byte[] randomData = new byte[4096];
         new Random().nextBytes(randomData);
 
-        final Packet packet = new PacketBuilder((short)1)
+        final Packet packet = new PacketBuilder()
                 .withBytes(randomData)
                 .build();
 
         server.addListener(new ServerListener() {
             @Override
             public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) throws IOException {
-                assertTrue(packet.validateChecksum());
+                assertTrue(packet.validateHashcode());
             }
         });
 

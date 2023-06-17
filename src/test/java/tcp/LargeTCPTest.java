@@ -5,7 +5,6 @@ import xyz.synse.packetnet.client.Client;
 import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.packet.Packet;
 import xyz.synse.packetnet.packet.PacketBuilder;
-import xyz.synse.packetnet.common.checksum.exceptions.ChecksumCalculationException;
 import xyz.synse.packetnet.server.Connection;
 import xyz.synse.packetnet.server.Server;
 import xyz.synse.packetnet.server.listeners.ServerListener;
@@ -14,16 +13,17 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.*;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LargeTCPTest {
     @Test
-    public void runTest() throws IOException, InterruptedException, ChecksumCalculationException {
+    public void runTest() throws IOException, InterruptedException {
         // Create the original packet
-        PacketBuilder packetBuilder = new PacketBuilder((short) 2);
         byte[] bytes = new byte[7168];
         new Random().nextBytes(bytes);
-        Packet originalPacket = packetBuilder
+        Packet originalPacket = new PacketBuilder()
+                .withID((short) 2)
                 .withString("Hello, World!")
                 .withEnum(ProtocolType.TCP)
                 .withDouble(69.420D)
@@ -34,20 +34,19 @@ public class LargeTCPTest {
                 .withUUID(UUID.randomUUID())
                 .withBytes(bytes)
                 .build();
-        packetBuilder.close();
 
         // Pre-compute original hash code
-        int originalHash = Arrays.hashCode(originalPacket.getData());
+        int originalHashcode = originalPacket.getHashcode();
 
         // Computed hashes
-        final List<Integer> hashes = new ArrayList<>();
+        final List<Packet> packets = new ArrayList<>();
 
         // Create server for validation
         Server server = new Server();
         server.addListener(new ServerListener() {
             @Override
             public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) {
-                hashes.add(Arrays.hashCode(packet.getData()));
+                packets.add(packet);
             }
         });
         server.start(3300, 3301);
@@ -68,12 +67,7 @@ public class LargeTCPTest {
 
         // Validate hash codes
         for (int i = 0; i < 20; i++) {
-            assertTrue(i < hashes.size());
-
-            int hash = hashes.get(i);
-            boolean isValid = hash == originalHash;
-
-            assertTrue(isValid);
+            assertTrue(packets.get(i).validateHashcode());
         }
     }
 }

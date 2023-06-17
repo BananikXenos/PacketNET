@@ -42,7 +42,7 @@ public class Test {
         Packet compressedPacket = PacketCompressor.compress(encryptedPacket, PacketCompressor.GZIP_COMPRESSOR);
 
         // Send the compressed packet using UDP and TCP
-        for(int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 1000; i++) {
             clientInstance.send(compressedPacket, ProtocolType.UDP);
             clientInstance.send(compressedPacket, ProtocolType.TCP);
             Thread.sleep(10);
@@ -69,28 +69,28 @@ public class Test {
     }
 
     public static Packet createSamplePacket() {
-        try (PacketBuilder builder = new PacketBuilder((short) 1)) {
-            Random random = new Random();
+        Random random = new Random();
 
-            return builder
-                    .withEnum(TestEnum.TWO)
-                    .withObject(new TestClass())
-                    .withInt(random.nextInt())
-                    .withString("Hello, World!")
-                    .withBoolean(random.nextBoolean())
-                    .withDouble(random.nextDouble())
-                    .withLong(random.nextLong())
-                    .withFloat(random.nextFloat())
-                    .withShort((short) random.nextInt(Short.MAX_VALUE))
-                    .withBytes(new byte[]{0x01, 0x02, 0x03})
-                    .withUUID(UUID.randomUUID())
-                    .build();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return new PacketBuilder()
+                .withID((short) 1)
+                .withEnum(TestEnum.TWO)
+                .withObject(new TestClass())
+                .withInt(random.nextInt())
+                .withString("Hello, World!")
+                .withBoolean(random.nextBoolean())
+                .withDouble(random.nextDouble())
+                .withLong(random.nextLong())
+                .withFloat(random.nextFloat())
+                .withShort((short) random.nextInt(Short.MAX_VALUE))
+                .withBytes(new byte[]{0x01, 0x02, 0x03})
+                .withUUID(UUID.randomUUID())
+                .build();
     }
 
     private static void processPacket(Packet packet) {
+        // Modified packet during delivery
+        if(!packet.validateHashcode()) return;
+
         try {
             Packet decompressedPacket = PacketCompressor.decompress(packet, PacketCompressor.GZIP_COMPRESSOR);
             Packet decryptedPacket = PacketEncryptor.decrypt(decompressedPacket, secretKey);
