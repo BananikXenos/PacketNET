@@ -73,6 +73,13 @@ public class Server {
         return true;
     }
 
+    public void waitForEmptyServer() throws InterruptedException {
+        do {
+            logger.debug("Waiting for server to be empty");
+            Thread.sleep(10);
+        } while (!connections.isEmpty());
+    }
+
     /**
      * Stops the server and closes all connections.
      */

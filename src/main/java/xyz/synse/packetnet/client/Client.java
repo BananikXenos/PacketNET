@@ -216,6 +216,8 @@ public class Client {
     public synchronized boolean reconnectUDP() {
         if (udpSocket == null || udpSocket.isClosed()) return false;
 
+        udpConnected = false;
+
         Packet portPacket = new PacketBuilder()
                 .withID((short) -1000)
                 .withInt(udpSocket.getLocalPort())
@@ -244,6 +246,13 @@ public class Client {
 
         // Notify listeners about the disconnection
         listeners.forEach(ClientListener::onDisconnected);
+    }
+
+    public void waitForUDPConnection() throws InterruptedException {
+        do {
+            logger.debug("Waiting for udp connection");
+            Thread.sleep(10);
+        } while (!isConnected(ProtocolType.UDP));
     }
 
     /**

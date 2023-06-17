@@ -19,11 +19,10 @@ import java.util.Random;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class BenchmarkTest
-{
+public class TCPBenchmarkTest {
     protected static final int tcpPort = 42365, udpPort = 42366;
-    protected static final float invMega = 1/1000000f;
-    protected static final float invNano = 1/1000000000f;
+    protected static final float invMega = 1 / 1000000f;
+    protected static final float invNano = 1 / 1000000000f;
 
     protected Server server;
     protected Client client;
@@ -31,9 +30,8 @@ public class BenchmarkTest
     protected long end;
 
     @BeforeEach
-    public void setup() throws Exception
-    {
-        setLoggingLevel(Level.INFO);
+    public void setup() throws Exception {
+        setLoggingLevel(Level.ERROR);
         server = new Server();
         server.start(tcpPort, udpPort);
 
@@ -44,12 +42,13 @@ public class BenchmarkTest
     @AfterEach
     public void teardown() throws Exception
     {
+        client.close();
+        server.waitForEmptyServer();
         server.stop();
     }
 
     @Test
-    public void testEmptyPacketsPerSecond() throws Exception
-    {
+    public void testEmptyPacketsPerSecond() throws Exception {
         final int amount = 1000;
 
         final Packet packet = new PacketBuilder().build();
@@ -62,8 +61,7 @@ public class BenchmarkTest
         });
 
         start = System.nanoTime();
-        for (int i = 0; i < amount; i++)
-        {
+        for (int i = 0; i < amount; i++) {
             assertTrue(client.send(packet, ProtocolType.TCP));
         }
         end = System.nanoTime();
@@ -72,8 +70,7 @@ public class BenchmarkTest
     }
 
     @Test
-    public void testMBPerSecond() throws Exception
-    {
+    public void testMBPerSecond() throws Exception {
         final int amount = 1000;
 
         final byte[] randomData = new byte[4096];
@@ -91,8 +88,7 @@ public class BenchmarkTest
         });
 
         start = System.nanoTime();
-        for (int i = 0; i < amount; i++)
-        {
+        for (int i = 0; i < amount; i++) {
             assertTrue(client.send(packet, ProtocolType.TCP));
         }
         end = System.nanoTime();
