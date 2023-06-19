@@ -1,5 +1,6 @@
 package xyz.synse.packetnet.packet;
 
+import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,12 +10,12 @@ import java.util.UUID;
 public class PacketBuilder {
     private final Logger logger = LoggerFactory.getLogger(PacketBuilder.class);
     private short packetID;
-    private final ByteArrayOutputStream byteOut;
+    private final FastByteArrayOutputStream byteOut;
     private final DataOutputStream out;
     private boolean isBuilt;
 
     public PacketBuilder() {
-        this.byteOut = new ByteArrayOutputStream();
+        this.byteOut = new FastByteArrayOutputStream();
         this.out = new DataOutputStream(byteOut);
         this.isBuilt = false;
     }
@@ -63,7 +64,9 @@ public class PacketBuilder {
     public synchronized PacketBuilder withString(String utf) {
         checkBuilt();
         try {
-            out.writeUTF(utf);
+            byte[] utfBytes = utf.getBytes();
+            out.writeInt(utfBytes.length);
+            out.write(utfBytes);
         } catch (final IOException e) {
             logger.error("Unable to add String: {} : {}", e.getClass(), e.getMessage());
         }
@@ -153,7 +156,8 @@ public class PacketBuilder {
 
                 objOut.writeObject(obj);
                 byte[] bytes = byteOut.toByteArray();
-                withBytes(bytes);
+                out.writeInt(bytes.length);
+                out.write(bytes);
             }
         } catch (final IOException e) {
             logger.error("Unable to add Object: {} : {}", e.getClass(), e.getMessage());
@@ -174,7 +178,7 @@ public class PacketBuilder {
 
         return new Packet(
                 packetID,
-                byteOut.toByteArray()
+                byteOut.array
         );
     }
 }

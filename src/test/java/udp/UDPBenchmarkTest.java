@@ -20,13 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class UDPBenchmarkTest {
     protected static final int tcpPort = 42365, udpPort = 42366;
-    protected static final float invMega = 1 / 1000000f;
-    protected static final float invNano = 1 / 1000000000f;
-
     protected Server server;
     protected Client client;
-    protected long start;
-    protected long end;
 
     @BeforeEach
     public void setup() throws Exception {
@@ -48,7 +43,7 @@ public class UDPBenchmarkTest {
 
     @Test
     public void testEmptyPacketsPerSecond() throws Exception {
-        final int amount = 1000;
+        final int amount = 100_000;
 
         final Packet packet = new PacketBuilder().build();
 
@@ -61,18 +56,17 @@ public class UDPBenchmarkTest {
 
         client.waitForUDPConnection();
 
-        start = System.nanoTime();
+        long start = System.currentTimeMillis();
         for (int i = 0; i < amount; i++) {
             assertTrue(client.send(packet, ProtocolType.UDP));
         }
-        end = System.nanoTime();
 
-        System.out.println(amount / ((end - start) * invNano) + " packets per second");
+        System.out.println(amount / ((System.currentTimeMillis() - start) / 1000f) + " packets per second");
     }
 
     @Test
     public void testMBPerSecond() throws Exception {
-        final int amount = 1000;
+        final int amount = 100_000;
 
         final byte[] randomData = new byte[4096];
         new Random().nextBytes(randomData);
@@ -80,7 +74,6 @@ public class UDPBenchmarkTest {
         final Packet packet = new PacketBuilder()
                 .withBytes(randomData)
                 .build();
-
         server.addListener(new ServerListener() {
             @Override
             public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) throws IOException {
@@ -90,13 +83,12 @@ public class UDPBenchmarkTest {
 
         client.waitForUDPConnection();
 
-        start = System.nanoTime();
+        long start = System.currentTimeMillis();
         for (int i = 0; i < amount; i++) {
             assertTrue(client.send(packet, ProtocolType.UDP));
         }
-        end = System.nanoTime();
 
-        System.out.println((randomData.length * invMega * amount) / ((end - start) * invNano) + " MB per second");
+        System.out.println(((randomData.length * amount) / 1024f / 1024f) / ((System.currentTimeMillis() - start) / 1000f) + " MB per second");
     }
 
     public static void setLoggingLevel(Level level) {

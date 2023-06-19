@@ -89,14 +89,13 @@ public class Test {
 
     private static void processPacket(Packet packet) {
         // Modified packet during delivery
-        if(!packet.validateHashcode()) return;
+        if (!packet.validateHashcode()) return;
 
         try {
             Packet decompressedPacket = PacketCompressor.decompress(packet, PacketCompressor.GZIP_COMPRESSOR);
             Packet decryptedPacket = PacketEncryptor.decrypt(decompressedPacket, secretKey);
-            try (PacketReader reader = new PacketReader(decryptedPacket)) {
-                // Read the values in the same order as they were written and use the values
-            }
+            PacketReader packetReader = new PacketReader(decryptedPacket);
+            // Read the values in the same order as they were written and use the values
         } catch (Exception ex) {
             ex.printStackTrace();
         }

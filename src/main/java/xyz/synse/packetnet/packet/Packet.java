@@ -18,11 +18,11 @@ public class Packet {
         this.providedHashcode = Arrays.hashCode(data);
     }
 
-    public Packet(short id, byte[] data, int providedChecksum) {
+    public Packet(short id, byte[] data, int providedHashcode) {
         this.id = id;
         this.data = data;
 
-        this.providedHashcode = providedChecksum;
+        this.providedHashcode = providedHashcode;
         this.hashcode = Arrays.hashCode(data);
     }
 

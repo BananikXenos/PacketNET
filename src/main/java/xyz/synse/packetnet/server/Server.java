@@ -236,7 +236,8 @@ public class Server {
 
     private boolean postProcessPacket(Connection connection, Packet packet) {
         if (packet.getID() == (short) -1000) {
-            try (PacketReader packetReader = new PacketReader(packet)) {
+            try {
+                PacketReader packetReader = new PacketReader(packet);
                 int udpPort = packetReader.readInt();
 
                 connection.setUdpPort(udpPort);

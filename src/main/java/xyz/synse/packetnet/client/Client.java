@@ -12,6 +12,7 @@ import xyz.synse.packetnet.packet.PacketReader;
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.*;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -186,7 +187,8 @@ public class Client {
     // Perform post-processing for the received packet
     private boolean postProcessPacket(Packet packet) {
         if (packet.getID() == (short) -1000) {
-            try (PacketReader packetReader = new PacketReader(packet)) {
+            try {
+                PacketReader packetReader = new PacketReader(packet);
                 int udpPort = packetReader.readInt();
 
                 if (udpPort != udpSocket.getLocalPort()) {
@@ -198,7 +200,7 @@ public class Client {
                 this.udpConnected = true;
                 logger.debug("UDP connection established on port {}", udpPort);
                 listeners.forEach(listener -> listener.onConnected(ProtocolType.UDP));
-            } catch (IOException e) {
+            } catch (BufferUnderflowException e) {
                 logger.error("Unreadable UDP port packet from server. Resending port: {} :", e.getClass(), e);
                 reconnectUDP();
             }
