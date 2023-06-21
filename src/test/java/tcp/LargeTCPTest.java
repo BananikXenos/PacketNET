@@ -11,9 +11,11 @@ import xyz.synse.packetnet.server.listeners.ServerListener;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LargeTCPTest {
@@ -34,9 +36,6 @@ public class LargeTCPTest {
                 .withUUID(UUID.randomUUID())
                 .withBytes(bytes)
                 .build();
-
-        // Pre-compute original hash code
-        int originalHashcode = originalPacket.getHashcode();
 
         // Computed hashes
         final List<Packet> packets = new ArrayList<>();

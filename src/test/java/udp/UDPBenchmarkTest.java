@@ -24,7 +24,7 @@ public class UDPBenchmarkTest {
     protected Client client;
 
     @BeforeEach
-    public void setup() throws Exception {
+    public void setup() {
         setLoggingLevel(Level.ERROR);
         server = new Server();
         server.start(tcpPort, udpPort);

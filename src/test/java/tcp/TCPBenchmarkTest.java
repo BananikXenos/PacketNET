@@ -16,7 +16,6 @@ import xyz.synse.packetnet.server.listeners.ServerListener;
 import java.io.IOException;
 import java.util.Random;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TCPBenchmarkTest {
@@ -25,7 +24,7 @@ public class TCPBenchmarkTest {
     protected Client client;
 
     @BeforeEach
-    public void setup() throws Exception {
+    public void setup() {
         setLoggingLevel(Level.ERROR);
         server = new Server();
         server.start(tcpPort, udpPort);

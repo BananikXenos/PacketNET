@@ -8,14 +8,12 @@ import xyz.synse.packetnet.packet.PacketBuilder;
 import xyz.synse.packetnet.server.Connection;
 import xyz.synse.packetnet.server.Server;
 import xyz.synse.packetnet.server.listeners.ServerListener;
-import xyz.synse.packetnet.threading.ThreadManager;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SmallTCPTest {
@@ -23,9 +21,6 @@ public class SmallTCPTest {
     public void runTest() throws IOException, InterruptedException {
         // Create the original packet
         Packet originalPacket = new PacketBuilder().withString("Hello, World!").build();
-
-        // Pre-compute original hash code
-        int originalHashcode = originalPacket.getHashcode();
 
         // Computed hashes
         final List<Packet> packets = new ArrayList<>();

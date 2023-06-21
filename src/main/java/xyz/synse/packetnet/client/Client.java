@@ -331,22 +331,9 @@ public class Client {
      * @return True if the client is connected using the specified protocol, false otherwise.
      */
     public boolean isConnected(ProtocolType protocolType) {
-        switch (protocolType) {
-            case TCP:
-                return tcpSocket != null && tcpSocket.isConnected() && !tcpSocket.isClosed();
-            case UDP:
-                return udpConnected && udpSocket != null && !udpSocket.isClosed();
-            default:
-                return false;
-        }
-    }
-
-    /**
-     * Checks if the client is connected using any protocol.
-     *
-     * @return True if the client is connected using any protocol, false otherwise.
-     */
-    public boolean isConnected() {
-        return isConnected(ProtocolType.TCP) || isConnected(ProtocolType.UDP);
+        return switch (protocolType) {
+            case TCP -> tcpSocket != null && tcpSocket.isConnected() && !tcpSocket.isClosed();
+            case UDP -> udpConnected && udpSocket != null && !udpSocket.isClosed();
+        };
     }
 }
