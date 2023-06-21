@@ -55,6 +55,8 @@ public class TCPBenchmarkTest {
             }
         });
 
+        client.waitForUDPConnection();
+
         long start = System.currentTimeMillis();
         for (int i = 0; i < amount; i++) {
             assertTrue(client.send(packet, ProtocolType.TCP));
@@ -80,6 +82,8 @@ public class TCPBenchmarkTest {
             }
         });
 
+        client.waitForUDPConnection();
+
         long start = System.currentTimeMillis();
         for (int i = 0; i < amount; i++) {
             assertTrue(client.send(packet, ProtocolType.TCP));
@@ -88,7 +92,7 @@ public class TCPBenchmarkTest {
         System.out.println(((randomData.length * amount) / 1024f / 1024f) / ((System.currentTimeMillis() - start) / 1000f) + " MB per second");
     }
 
-    public static void setLoggingLevel(ch.qos.logback.classic.Level level) {
+    public static void setLoggingLevel(Level level) {
         ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
         root.setLevel(level);
     }
