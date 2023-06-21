@@ -93,6 +93,7 @@ public class Client {
         this.udpPort = udpPort;
 
         this.tcpSocket = new Socket(address, tcpPort);
+        this.tcpSocket.setTcpNoDelay(true);
         this.udpSocket = new DatagramSocket();
 
         launchThread(this::listenerTcpThreadImpl);
@@ -312,6 +313,7 @@ public class Client {
         }
 
         tcpSocket.getOutputStream().write(data);
+        tcpSocket.getOutputStream().flush();
     }
 
     /**

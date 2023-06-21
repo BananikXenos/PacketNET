@@ -122,6 +122,7 @@ public class Server {
         while (true) {
             try {
                 Socket clientSocket = tcpSocket.accept();
+                clientSocket.setTcpNoDelay(true);
 
                 Connection connection = new Connection(clientSocket);
                 connections.add(connection);
@@ -299,6 +300,7 @@ public class Server {
         }
 
         tcpSocket.getOutputStream().write(data);
+        tcpSocket.getOutputStream().flush();
     }
 
     /**
