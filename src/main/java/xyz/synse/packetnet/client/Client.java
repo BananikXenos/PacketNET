@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.synse.packetnet.client.listeners.ClientListener;
 import xyz.synse.packetnet.common.ProtocolType;
-import xyz.synse.packetnet.common.Utils;
 import xyz.synse.packetnet.packet.Packet;
 import xyz.synse.packetnet.packet.PacketBuilder;
 import xyz.synse.packetnet.packet.PacketReader;
@@ -306,11 +305,7 @@ public class Client {
      * @throws IOException if an I/O error occurs while sending the packet.
      */
     private synchronized void sendTcp(Packet packet) throws IOException {
-        byte[] data = Utils.expandByteArray(packet.toByteArray(), writeBufferSize);
-
-        if (data.length > writeBufferSize) {
-            throw new IOException("Unable to send packet using TCP. Size exceeds " + writeBufferSize + " bytes (" + data.length + "bytes)");
-        }
+        byte[] data = packet.toByteBuffer(writeBufferSize).array();
 
         tcpSocket.getOutputStream().write(data);
         tcpSocket.getOutputStream().flush();
@@ -323,11 +318,7 @@ public class Client {
      * @throws IOException if an I/O error occurs while sending the packet.
      */
     private synchronized void sendUdp(Packet packet) throws IOException {
-        byte[] data = Utils.expandByteArray(packet.toByteArray(), writeBufferSize);
-
-        if (data.length > writeBufferSize) {
-            throw new IOException("Unable to send packet using UDP. Size exceeds " + writeBufferSize + " bytes (" + data.length + "bytes)");
-        }
+        byte[] data = packet.toByteBuffer(writeBufferSize).array();
 
         DatagramPacket datagramPacket = new DatagramPacket(data, data.length, tcpSocket.getInetAddress(), udpPort);
         udpSocket.send(datagramPacket);

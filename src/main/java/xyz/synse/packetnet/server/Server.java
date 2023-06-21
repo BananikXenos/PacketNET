@@ -3,7 +3,6 @@ package xyz.synse.packetnet.server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.synse.packetnet.common.ProtocolType;
-import xyz.synse.packetnet.common.Utils;
 import xyz.synse.packetnet.packet.Packet;
 import xyz.synse.packetnet.packet.PacketReader;
 import xyz.synse.packetnet.server.listeners.ServerListener;
@@ -266,14 +265,9 @@ public class Server {
 
         try {
             switch (protocol) {
-                case TCP:
-                    sendTcp(connection, packet);
-                    break;
-                case UDP:
-                    sendUdp(connection, packet);
-                    break;
-                default:
-                    logger.warn("Unsupported protocol: " + protocol);
+                case TCP -> sendTcp(connection, packet);
+                case UDP -> sendUdp(connection, packet);
+                default -> logger.warn("Unsupported protocol: " + protocol);
             }
 
             return true;
@@ -293,11 +287,7 @@ public class Server {
     private synchronized void sendTcp(Connection connection, Packet packet) throws IOException {
         Socket tcpSocket = connection.getTcpSocket();
 
-        byte[] data = Utils.expandByteArray(packet.toByteArray(), writeBufferSize);
-
-        if (data.length > writeBufferSize) {
-            throw new IOException("Unable to send packet using TCP. Size exceeds " + writeBufferSize + " bytes (" + data.length + "bytes)");
-        }
+        byte[] data = packet.toByteBuffer(writeBufferSize).array();
 
         tcpSocket.getOutputStream().write(data);
         tcpSocket.getOutputStream().flush();
@@ -312,11 +302,7 @@ public class Server {
      */
     private synchronized void sendUdp(Connection connection, Packet packet) throws IOException {
         int udpPort = connection.getUdpPort().get();
-        byte[] data = Utils.expandByteArray(packet.toByteArray(), writeBufferSize);
-
-        if (data.length > writeBufferSize) {
-            throw new IOException("Unable to send packet using UDP. Size exceeds " + writeBufferSize + " bytes (" + data.length + "bytes)");
-        }
+        byte[] data = packet.toByteBuffer(writeBufferSize).array();
 
         DatagramPacket datagramPacket = new DatagramPacket(data, 0, data.length, connection.getTcpSocket().getInetAddress(), udpPort);
         udpSocket.send(datagramPacket);

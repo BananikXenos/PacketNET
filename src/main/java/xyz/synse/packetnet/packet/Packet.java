@@ -46,8 +46,8 @@ public class Packet {
         return hashcode == providedHashcode;
     }
 
-    public byte[] toByteArray() {
-        ByteBuffer buffer = ByteBuffer.allocate(Short.BYTES + Integer.BYTES + Integer.BYTES + data.length);
+    public ByteBuffer toByteBuffer(int maxSize) {
+        ByteBuffer buffer = ByteBuffer.allocate(maxSize);
 
         buffer.putShort(id);
 
@@ -56,7 +56,7 @@ public class Packet {
         buffer.putInt(data.length);
         buffer.put(data);
 
-        return buffer.array();
+        return buffer;
     }
 
     public static Packet fromByteBuffer(ByteBuffer buffer) throws IOException {
