@@ -311,11 +311,11 @@ public class Server {
     /**
      * Broadcasts a packet to all connected clients using the specified protocol.
      *
-     * @param protocol The protocol to use (TCP or UDP).
      * @param packet   The packet to broadcast.
+     * @param protocol The protocol to use (TCP or UDP).
      * @throws IOException if an I/O error occurs while broadcasting the packet.
      */
-    public synchronized void broadcast(ProtocolType protocol, Packet packet) throws IOException {
+    public synchronized void broadcast(Packet packet, ProtocolType protocol) throws IOException {
         for (Connection connection : connections) {
             send(connection, packet, protocol);
         }

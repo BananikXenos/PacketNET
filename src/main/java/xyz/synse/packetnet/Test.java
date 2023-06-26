@@ -3,11 +3,7 @@ package xyz.synse.packetnet;
 import xyz.synse.packetnet.client.Client;
 import xyz.synse.packetnet.client.listeners.ClientListener;
 import xyz.synse.packetnet.common.ProtocolType;
-import xyz.synse.packetnet.common.compression.PacketCompressor;
-import xyz.synse.packetnet.common.encryption.PacketEncryptor;
-import xyz.synse.packetnet.packet.Packet;
-import xyz.synse.packetnet.packet.PacketBuilder;
-import xyz.synse.packetnet.packet.PacketReader;
+import xyz.synse.packetnet.packet.*;
 import xyz.synse.packetnet.server.Connection;
 import xyz.synse.packetnet.server.Server;
 import xyz.synse.packetnet.server.listeners.ServerListener;
@@ -39,7 +35,7 @@ public class Test {
         // Create a sample packet and encrypt, compress it
         Packet packet = createSamplePacket();
         Packet encryptedPacket = PacketEncryptor.encrypt(packet, secretKey);
-        Packet compressedPacket = PacketCompressor.compress(encryptedPacket, PacketCompressor.GZIP_COMPRESSOR);
+        Packet compressedPacket = PacketCompressor.compress(encryptedPacket);
 
         // Send the compressed packet using UDP and TCP
         for (int i = 0; i < 1000; i++) {
@@ -52,8 +48,8 @@ public class Test {
         Thread.sleep(3000L);
 
         // Broadcast the compressed packet to all connected clients using TCP & UDP
-        serverInstance.broadcast(ProtocolType.TCP, compressedPacket);
-        serverInstance.broadcast(ProtocolType.UDP, compressedPacket);
+        serverInstance.broadcast(compressedPacket, ProtocolType.TCP);
+        serverInstance.broadcast(compressedPacket, ProtocolType.UDP);
 
         // Wait for a second
         Thread.sleep(1000L);
@@ -92,7 +88,7 @@ public class Test {
         if (!packet.validateHashcode()) return;
 
         try {
-            Packet decompressedPacket = PacketCompressor.decompress(packet, PacketCompressor.GZIP_COMPRESSOR);
+            Packet decompressedPacket = PacketCompressor.decompress(packet);
             Packet decryptedPacket = PacketEncryptor.decrypt(decompressedPacket, secretKey);
             PacketReader packetReader = new PacketReader(decryptedPacket);
             // Read the values in the same order as they were written and use the values

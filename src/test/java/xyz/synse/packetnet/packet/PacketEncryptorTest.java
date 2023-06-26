@@ -1,20 +1,23 @@
-package compression;
+package xyz.synse.packetnet.packet;
 
 import org.junit.jupiter.api.Test;
 import xyz.synse.packetnet.common.ProtocolType;
-import xyz.synse.packetnet.common.compression.PacketCompressor;
-import xyz.synse.packetnet.packet.Packet;
-import xyz.synse.packetnet.packet.PacketBuilder;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Random;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
-public class DeflaterTest {
+public class PacketEncryptorTest {
+    private static final String key = "1F16hIQ3SjQ$k1!9";
     @Test
-    public void testDeflaterCompressionAndDecompression() throws IOException {
+    public void runTest() throws IOException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
         int[] packetSizes = {1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576};
 
         for (int size : packetSizes) {
@@ -34,14 +37,14 @@ public class DeflaterTest {
                     .withBytes(bytes)
                     .build();
 
-            // Compress the packet
-            Packet compressedPacket = PacketCompressor.compress(originalPacket, PacketCompressor.DEFLATER_COMPRESSOR);
+            // Encrypt the packet
+            Packet encryptedPacket = PacketEncryptor.encrypt(originalPacket, key);
 
-            // Decompress the packet and calculate the hash code
-            Packet decompressedPacket = PacketCompressor.decompress(compressedPacket, PacketCompressor.DEFLATER_COMPRESSOR);
+            // Decrypt the packet and calculate the hash code
+            Packet decryptedPacket = PacketEncryptor.decrypt(encryptedPacket, key);
 
             // Check
-            assertArrayEquals(originalPacket.getData(), decompressedPacket.getData(),
+            assertArrayEquals(originalPacket.getData(), decryptedPacket.getData(),
                     "Compression and decompression failed for packet size: " + size);
         }
     }

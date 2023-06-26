@@ -77,7 +77,7 @@ public class Client {
 
     /**
      * Sets up the TCP and UDP sockets and launches the listener threads.
-     *
+     *ex
      * @param host    The IP address or hostname of the server.
      * @param tcpPort The TCP port of the server.
      * @param udpPort The UDP port of the server.
@@ -110,16 +110,18 @@ public class Client {
         ByteBuffer buffer = ByteBuffer.allocate(readBufferSize);
 
         while (true) {
-            final Packet packet;
-
             try {
                 int bytesRead = tcpSocket.getInputStream().read(buffer.array());
 
                 if (bytesRead == -1) break;
 
                 buffer.rewind();
-                packet = Packet.fromByteBuffer(buffer);
+                Packet packet = Packet.fromByteBuffer(buffer);
                 buffer.clear();
+
+                logger.debug("Received packet using TCP: {{}}", packet);
+
+                packetReceived(packet);
             } catch (final SocketException | EOFException e) {
                 close();
                 break;
@@ -128,10 +130,6 @@ public class Client {
                 close();
                 break;
             }
-
-            logger.debug("Received packet using TCP: {{}}", packet);
-
-            packetReceived(packet);
         }
 
         logger.debug("TCP listener thread stopped");
@@ -142,15 +140,17 @@ public class Client {
         ByteBuffer buffer = ByteBuffer.allocate(readBufferSize);
 
         while (true) {
-            final Packet packet;
-
             try {
                 DatagramPacket datagramPacket = new DatagramPacket(buffer.array(), buffer.capacity());
                 udpSocket.receive(datagramPacket);
-                buffer.rewind();
 
-                packet = Packet.fromByteBuffer(buffer);
+                buffer.rewind();
+                Packet packet = Packet.fromByteBuffer(buffer);
                 buffer.clear();
+
+                logger.debug("Received packet using UDP: {{}}", packet);
+
+                packetReceived(packet);
             } catch (final SocketException | EOFException e) {
                 close();
                 break;
@@ -159,10 +159,6 @@ public class Client {
                 close();
                 break;
             }
-
-            logger.debug("Received packet using UDP: {{}}", packet);
-
-            packetReceived(packet);
         }
 
         logger.debug("UDP listener thread stopped");

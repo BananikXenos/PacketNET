@@ -1,5 +1,4 @@
-package udp;
-
+package xyz.synse.packetnet.benchmark;
 
 import ch.qos.logback.classic.Level;
 import org.junit.jupiter.api.AfterEach;
@@ -18,7 +17,7 @@ import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class UDPBenchmarkTest {
+public class BenchmarkTest {
     protected static final int tcpPort = 42365, udpPort = 42366;
     protected Server server;
     protected Client client;
@@ -42,11 +41,15 @@ public class UDPBenchmarkTest {
     }
 
     @Test
-    public void testEmptyPacketsPerSecond() throws Exception {
+    public void testMBPSTCP() throws Exception {
         final int amount = 100_000;
 
-        final Packet packet = new PacketBuilder().build();
+        final byte[] randomData = new byte[4096];
+        new Random().nextBytes(randomData);
 
+        final Packet packet = new PacketBuilder()
+                .withBytes(randomData)
+                .build();
         server.addListener(new ServerListener() {
             @Override
             public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) throws IOException {
@@ -58,14 +61,14 @@ public class UDPBenchmarkTest {
 
         long start = System.currentTimeMillis();
         for (int i = 0; i < amount; i++) {
-            assertTrue(client.send(packet, ProtocolType.UDP));
+            assertTrue(client.send(packet, ProtocolType.TCP));
         }
 
-        System.out.println(amount / ((System.currentTimeMillis() - start) / 1000f) + " packets per second");
+        System.out.println("TCP: " + ((randomData.length * amount) / 1024f / 1024f) / ((System.currentTimeMillis() - start) / 1000f) + " MB per second");
     }
 
     @Test
-    public void testMBPerSecond() throws Exception {
+    public void testMBPSUDP() throws Exception {
         final int amount = 100_000;
 
         final byte[] randomData = new byte[4096];
@@ -88,7 +91,7 @@ public class UDPBenchmarkTest {
             assertTrue(client.send(packet, ProtocolType.UDP));
         }
 
-        System.out.println(((randomData.length * amount) / 1024f / 1024f) / ((System.currentTimeMillis() - start) / 1000f) + " MB per second");
+        System.out.println("UDP: " + ((randomData.length * amount) / 1024f / 1024f) / ((System.currentTimeMillis() - start) / 1000f) + " MB per second");
     }
 
     public static void setLoggingLevel(Level level) {
