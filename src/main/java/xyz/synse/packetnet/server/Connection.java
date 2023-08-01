@@ -32,4 +32,13 @@ public class Connection {
     public void removeUdpPort(){
         this.udpPort = Optional.empty();
     }
+
+    @Override
+    public String toString() {
+        return "Connection{" +
+                "address=" + tcpSocket.getInetAddress() +
+                ", tcpPort=" + tcpSocket.getPort() +
+                ", " + (udpPort.isEmpty() ? "UDP Disconnected" : "udpPort=" + udpPort) +
+                "}";
+    }
 }

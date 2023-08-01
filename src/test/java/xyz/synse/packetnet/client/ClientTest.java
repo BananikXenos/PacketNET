@@ -2,8 +2,8 @@ package xyz.synse.packetnet.client;
 
 import org.junit.jupiter.api.Test;
 import xyz.synse.packetnet.common.ProtocolType;
-import xyz.synse.packetnet.packet.Packet;
-import xyz.synse.packetnet.packet.PacketBuilder;
+import xyz.synse.packetnet.common.packet.Packet;
+import xyz.synse.packetnet.common.packet.PacketBuilder;
 import xyz.synse.packetnet.server.Connection;
 import xyz.synse.packetnet.server.Server;
 import xyz.synse.packetnet.server.listeners.ServerListener;

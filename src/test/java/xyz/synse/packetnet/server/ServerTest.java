@@ -4,8 +4,8 @@ import org.junit.jupiter.api.Test;
 import xyz.synse.packetnet.client.Client;
 import xyz.synse.packetnet.client.listeners.ClientListener;
 import xyz.synse.packetnet.common.ProtocolType;
-import xyz.synse.packetnet.packet.Packet;
-import xyz.synse.packetnet.packet.PacketBuilder;
+import xyz.synse.packetnet.common.packet.Packet;
+import xyz.synse.packetnet.common.packet.PacketBuilder;
 import xyz.synse.packetnet.server.listeners.ServerListener;
 
 import java.io.IOException;
@@ -66,6 +66,7 @@ public class ServerTest {
             }
         });
         client.connect(InetAddress.getLocalHost().getHostName(), 3300, 3301);
+        server.waitForEmptyServer();
     }
 
     @Test
@@ -114,5 +115,6 @@ public class ServerTest {
             }
         });
         client.connect(InetAddress.getLocalHost().getHostName(), 3300, 3301);
+        server.waitForEmptyServer();
     }
 }

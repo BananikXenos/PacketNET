@@ -1,4 +1,4 @@
-package xyz.synse.packetnet.packet;
+package xyz.synse.packetnet.common.packet;
 
 import it.unimi.dsi.fastutil.io.FastByteArrayOutputStream;
 import org.slf4j.Logger;

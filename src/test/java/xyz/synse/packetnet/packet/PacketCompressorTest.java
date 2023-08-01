@@ -2,6 +2,9 @@ package xyz.synse.packetnet.packet;
 
 import org.junit.jupiter.api.Test;
 import xyz.synse.packetnet.common.ProtocolType;
+import xyz.synse.packetnet.common.packet.Packet;
+import xyz.synse.packetnet.common.packet.PacketBuilder;
+import xyz.synse.packetnet.common.packet.PacketCompressor;
 
 import java.io.IOException;
 import java.util.Random;

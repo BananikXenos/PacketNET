@@ -1,4 +1,4 @@
-package xyz.synse.packetnet.threading;
+package xyz.synse.packetnet.common.threading;
 
 import java.util.concurrent.*;
 

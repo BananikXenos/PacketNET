@@ -1,4 +1,4 @@
-package xyz.synse.packetnet.packet;
+package xyz.synse.packetnet.common.packet;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

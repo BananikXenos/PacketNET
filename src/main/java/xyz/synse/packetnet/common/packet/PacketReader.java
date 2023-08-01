@@ -1,4 +1,4 @@
-package xyz.synse.packetnet.packet;
+package xyz.synse.packetnet.common.packet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -3,8 +3,8 @@ package xyz.synse.packetnet.server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.synse.packetnet.common.ProtocolType;
-import xyz.synse.packetnet.packet.Packet;
-import xyz.synse.packetnet.packet.PacketReader;
+import xyz.synse.packetnet.common.packet.Packet;
+import xyz.synse.packetnet.common.packet.PacketReader;
 import xyz.synse.packetnet.server.listeners.ServerListener;
 
 import java.io.IOException;
@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import static xyz.synse.packetnet.threading.ThreadManager.launchThread;
+import static xyz.synse.packetnet.common.threading.ThreadManager.launchThread;
 
 public class Server {
     private final Logger logger = LoggerFactory.getLogger(Server.class);
@@ -52,7 +52,6 @@ public class Server {
      * @param tcpPort The TCP port to listen on.
      * @param udpPort The UDP port to listen on.
      * @return true if the server started successfully, false otherwise.
-     * @throws IOException if an I/O error occurs while starting the server.
      */
     public synchronized boolean start(int tcpPort, int udpPort) {
         logger.debug("Starting server");
@@ -164,7 +163,7 @@ public class Server {
                 }
 
                 buffer.rewind();
-                Packet packet = Packet.fromByteBuffer(buffer);
+                Packet packet = Packet.read(buffer);
                 buffer.clear();
 
                 logger.debug("Received packet using UDP from {}:{}: {{}}", connection.getTcpSocket().getInetAddress(), connection.getUdpPort().get(), packet);
@@ -200,7 +199,7 @@ public class Server {
                 }
 
                 buffer.rewind();
-                Packet packet = Packet.fromByteBuffer(buffer);
+                Packet packet = Packet.read(buffer);
                 buffer.clear();
 
                 logger.debug("Received packet using TCP from {}:{}: {{}}", connection.getTcpSocket().getInetAddress(), connection.getTcpSocket().getPort(), packet);
@@ -287,7 +286,8 @@ public class Server {
     private synchronized void sendTcp(Connection connection, Packet packet) throws IOException {
         Socket tcpSocket = connection.getTcpSocket();
 
-        byte[] data = packet.toByteBuffer(writeBufferSize).array();
+        ByteBuffer buffer = ByteBuffer.allocate(writeBufferSize);
+        byte[] data = packet.write(buffer).array();
 
         tcpSocket.getOutputStream().write(data);
         tcpSocket.getOutputStream().flush();
@@ -302,7 +302,9 @@ public class Server {
      */
     private synchronized void sendUdp(Connection connection, Packet packet) throws IOException {
         int udpPort = connection.getUdpPort().get();
-        byte[] data = packet.toByteBuffer(writeBufferSize).array();
+
+        ByteBuffer buffer = ByteBuffer.allocate(writeBufferSize);
+        byte[] data = packet.write(buffer).array();
 
         DatagramPacket datagramPacket = new DatagramPacket(data, 0, data.length, connection.getTcpSocket().getInetAddress(), udpPort);
         udpSocket.send(datagramPacket);

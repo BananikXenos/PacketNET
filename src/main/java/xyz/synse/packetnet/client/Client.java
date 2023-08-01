@@ -4,9 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.synse.packetnet.client.listeners.ClientListener;
 import xyz.synse.packetnet.common.ProtocolType;
-import xyz.synse.packetnet.packet.Packet;
-import xyz.synse.packetnet.packet.PacketBuilder;
-import xyz.synse.packetnet.packet.PacketReader;
+import xyz.synse.packetnet.common.packet.Packet;
+import xyz.synse.packetnet.common.packet.PacketBuilder;
+import xyz.synse.packetnet.common.packet.PacketReader;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -16,7 +16,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import static xyz.synse.packetnet.threading.ThreadManager.launchThread;
+import static xyz.synse.packetnet.common.threading.ThreadManager.launchThread;
 
 public class Client {
     private final Logger logger = LoggerFactory.getLogger(Client.class);
@@ -116,7 +116,7 @@ public class Client {
                 if (bytesRead == -1) break;
 
                 buffer.rewind();
-                Packet packet = Packet.fromByteBuffer(buffer);
+                Packet packet = Packet.read(buffer);
                 buffer.clear();
 
                 logger.debug("Received packet using TCP: {{}}", packet);
@@ -145,7 +145,7 @@ public class Client {
                 udpSocket.receive(datagramPacket);
 
                 buffer.rewind();
-                Packet packet = Packet.fromByteBuffer(buffer);
+                Packet packet = Packet.read(buffer);
                 buffer.clear();
 
                 logger.debug("Received packet using UDP: {{}}", packet);
@@ -301,7 +301,8 @@ public class Client {
      * @throws IOException if an I/O error occurs while sending the packet.
      */
     private synchronized void sendTcp(Packet packet) throws IOException {
-        byte[] data = packet.toByteBuffer(writeBufferSize).array();
+        ByteBuffer buffer = ByteBuffer.allocate(writeBufferSize);
+        byte[] data = packet.write(buffer).array();
 
         tcpSocket.getOutputStream().write(data);
         tcpSocket.getOutputStream().flush();
@@ -314,7 +315,8 @@ public class Client {
      * @throws IOException if an I/O error occurs while sending the packet.
      */
     private synchronized void sendUdp(Packet packet) throws IOException {
-        byte[] data = packet.toByteBuffer(writeBufferSize).array();
+        ByteBuffer buffer = ByteBuffer.allocate(writeBufferSize);
+        byte[] data = packet.write(buffer).array();
 
         DatagramPacket datagramPacket = new DatagramPacket(data, data.length, tcpSocket.getInetAddress(), udpPort);
         udpSocket.send(datagramPacket);

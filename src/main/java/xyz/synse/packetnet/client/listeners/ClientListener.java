@@ -1,7 +1,7 @@
 package xyz.synse.packetnet.client.listeners;
 
 import xyz.synse.packetnet.common.ProtocolType;
-import xyz.synse.packetnet.packet.Packet;
+import xyz.synse.packetnet.common.packet.Packet;
 
 import java.io.IOException;
 

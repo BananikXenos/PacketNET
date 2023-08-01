@@ -2,6 +2,9 @@ package xyz.synse.packetnet.packet;
 
 import org.junit.jupiter.api.Test;
 import xyz.synse.packetnet.common.ProtocolType;
+import xyz.synse.packetnet.common.packet.Packet;
+import xyz.synse.packetnet.common.packet.PacketBuilder;
+import xyz.synse.packetnet.common.packet.PacketEncryptor;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;

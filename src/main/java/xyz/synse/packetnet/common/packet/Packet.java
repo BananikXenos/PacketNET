@@ -1,4 +1,4 @@
-package xyz.synse.packetnet.packet;
+package xyz.synse.packetnet.common.packet;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -46,26 +46,23 @@ public class Packet {
         return hashcode == providedHashcode;
     }
 
-    public ByteBuffer toByteBuffer(int maxSize) {
-        ByteBuffer buffer = ByteBuffer.allocate(maxSize);
-
+    public ByteBuffer write(ByteBuffer buffer) {
+        // Write packet id
         buffer.putShort(id);
-
+        // Write packet checksum
         buffer.putInt(hashcode);
-
+        // Read packet data
         buffer.putInt(data.length);
         buffer.put(data);
 
         return buffer;
     }
 
-    public static Packet fromByteBuffer(ByteBuffer buffer) throws IOException {
+    public static Packet read(ByteBuffer buffer) throws IOException {
         // Read packet id
         short id = buffer.getShort();
-
         // Read packet checksum
         int hashcode = buffer.getInt();
-
         // Read packet data
         int len = buffer.getInt();
         byte[] data = new byte[len];
