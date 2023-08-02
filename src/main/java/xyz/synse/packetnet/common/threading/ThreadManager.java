@@ -3,7 +3,9 @@ package xyz.synse.packetnet.common.threading;
 import java.util.concurrent.*;
 
 public class ThreadManager {
-    private static final ExecutorService service = Executors.newCachedThreadPool();
+    private static final ExecutorService service = new ThreadPoolExecutor(0, Integer.MAX_VALUE,
+                                      0L, TimeUnit.MILLISECONDS,
+                                      new SynchronousQueue<Runnable>());
 
     public static Future<?> launchThread(final Runnable runnable) {
         return service.submit(runnable);
