@@ -14,12 +14,13 @@ import xyz.synse.packetnet.server.listeners.ServerListener;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.ShortBufferException;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
 public class Test {
-    public static void main(String[] args) throws IOException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException {
+    public static void main(String[] args) throws IOException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException, ShortBufferException {
         // First, for this example, we will disable sfl4j logging just to see our own messages
         Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
         root.setLevel(Level.OFF);
@@ -40,9 +41,8 @@ public class Test {
             public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) throws IOException {
                 System.out.println("[SERVER] Received packet " + packet.toString() + " from " + connection.toString() + " using " + protocolType.name());
                 // Now we will read the packet (YOU HAVE TO READ IN THE SAME ORDER AS WRITTEN)
-                PacketReader packetReader = new PacketReader(packet);
-                String ourString = packetReader.readString();
-                long ourTime = packetReader.readLong();
+                String ourString = packet.getBuffer().getString();
+                long ourTime = packet.getBuffer().getLong();
                 System.out.println("[SERVER] Read " + ourString + " and " + ourTime);
             }
 
@@ -80,19 +80,17 @@ public class Test {
         client.connect("127.0.0.1", 4443, 4444);
 
         // We will create a simple packet with id 1, short string and current time as long
-        Packet packet = new PacketBuilder()
-                .withID((short)1)
-                .withString("Hello, World!")
-                .withLong(System.currentTimeMillis())
-                .build();
+        Packet packet = new Packet((short)1);
+        packet.getBuffer().putString("Hello, World!");
+        packet.getBuffer().putLong(System.currentTimeMillis());
 
         // Optionally, we can compress the packet
-        Packet compressedPacket = PacketCompressor.compress(packet);
-        // Note: To use this, you have to decompress it first before using it (PacketCompressor.decompress(compressedPacket)) at onReceived
+        packet.getBuffer().compress();
+        // Note: To use this, you have to decompress it first before using it (packet.getBuffer().decompress()) at onReceived
 
         // Optionally, we can encrypt the packet
-        Packet encryptPacket = PacketEncryptor.encrypt(packet, "5rT31^fcs4MpUBPI");
-        // Note: Again as before, we have to decrypt it first before using it (PacketEncryptor.decrypt(encryptedPacket, <key used to encrypt>)) at onReceived
+        packet.getBuffer().encrypt("5rT31^fcs4MpUBPI");
+        // Note: Again as before, we have to decrypt it first before using it (packet.getBuffer().decrypt(<key used to encrypt>)) at onReceived
 
         // Finally we can send the packet. We will send it using TCP
         client.send(packet, ProtocolType.TCP);
@@ -105,6 +103,6 @@ public class Test {
         // Wait for the server to be empty
         server.waitForEmptyServer();
         // Finally, stop the server
-        server.stop();
+        server.close();
     }
 }

@@ -5,28 +5,34 @@ import org.slf4j.LoggerFactory;
 import xyz.synse.packetnet.client.listeners.ClientListener;
 import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.packet.Packet;
-import xyz.synse.packetnet.common.packet.PacketBuilder;
-import xyz.synse.packetnet.common.packet.PacketReader;
+import xyz.synse.packetnet.common.threading.ThreadPoolManager;
 
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.*;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.nio.channels.AsynchronousCloseException;
+import java.nio.channels.ClosedByInterruptException;
+import java.nio.channels.DatagramChannel;
+import java.nio.channels.SocketChannel;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import static xyz.synse.packetnet.common.threading.ThreadManager.launchThread;
+import java.util.concurrent.CountDownLatch;
 
 public class Client {
     private final Logger logger = LoggerFactory.getLogger(Client.class);
+    private ThreadPoolManager threadPoolManager;
     private final int readBufferSize;
     private final int writeBufferSize;
 
     private final List<ClientListener> listeners = new CopyOnWriteArrayList<>();
 
+    private SocketChannel socketChannel;
     private Socket tcpSocket;
+    private DatagramChannel datagramChannel;
     private DatagramSocket udpSocket;
+    private CountDownLatch udpConnectionLatch = new CountDownLatch(1);
     private int udpPort;
     private boolean udpConnected = false;
 
@@ -57,8 +63,7 @@ public class Client {
      * @return True if the client successfully connects, false otherwise.
      */
     public synchronized boolean connect(String host, int tcpPort, int udpPort) {
-        if ((this.tcpSocket != null && !this.tcpSocket.isClosed()) ||
-                (this.udpSocket != null && !this.udpSocket.isClosed()))
+        if ((this.tcpSocket != null && !this.tcpSocket.isClosed()) || (this.udpSocket != null && !this.udpSocket.isClosed()))
             throw new IllegalArgumentException("Client not closed");
         if (host.isEmpty() || tcpPort == -1 || udpPort == -1)
             throw new IllegalArgumentException("Host and ports are not set");
@@ -77,26 +82,32 @@ public class Client {
 
     /**
      * Sets up the TCP and UDP sockets and launches the listener threads.
-     *ex
+     * ex
+     *
      * @param host    The IP address or hostname of the server.
      * @param tcpPort The TCP port of the server.
      * @param udpPort The UDP port of the server.
      * @throws IOException if an I/O error occurs while setting up the sockets.
      */
     public synchronized void setSockets(String host, int tcpPort, int udpPort) throws IOException {
-        if ((this.tcpSocket != null && !this.tcpSocket.isClosed()) ||
-                (this.udpSocket != null && !this.udpSocket.isClosed()))
+        if ((this.tcpSocket != null && !this.tcpSocket.isClosed()) || (this.udpSocket != null && !this.udpSocket.isClosed()))
             throw new IllegalArgumentException("Client not closed");
 
         InetAddress address = InetAddress.getByName(host);
         this.udpPort = udpPort;
 
-        this.tcpSocket = new Socket(address, tcpPort);
+        this.socketChannel = SocketChannel.open(new InetSocketAddress(tcpPort));
+        this.tcpSocket = socketChannel.socket();
         this.tcpSocket.setTcpNoDelay(true);
-        this.udpSocket = new DatagramSocket();
+        this.datagramChannel = DatagramChannel.open();
+        this.udpSocket = datagramChannel.socket();
 
-        launchThread(this::listenerTcpThreadImpl);
-        launchThread(this::listenerUdpThreadImpl);
+        udpSocket.bind(new InetSocketAddress(0));
+
+        threadPoolManager = new ThreadPoolManager();
+
+        threadPoolManager.submit(this::listenerTcpThreadImpl);
+        threadPoolManager.submit(this::listenerUdpThreadImpl);
 
         // Send the UDP port packet to the server
         reconnectUDP();
@@ -109,7 +120,7 @@ public class Client {
     private void listenerTcpThreadImpl() {
         ByteBuffer buffer = ByteBuffer.allocate(readBufferSize);
 
-        while (true) {
+        while (!Thread.currentThread().isInterrupted()) {
             try {
                 int bytesRead = tcpSocket.getInputStream().read(buffer.array());
 
@@ -125,6 +136,8 @@ public class Client {
             } catch (final SocketException | EOFException e) {
                 close();
                 break;
+            } catch (AsynchronousCloseException e) {
+                break;
             } catch (IOException e) {
                 logger.error("Error in TCP listener thread: {} :", e.getClass(), e);
                 close();
@@ -139,7 +152,7 @@ public class Client {
     private void listenerUdpThreadImpl() {
         ByteBuffer buffer = ByteBuffer.allocate(readBufferSize);
 
-        while (true) {
+        while (!Thread.currentThread().isInterrupted()) {
             try {
                 DatagramPacket datagramPacket = new DatagramPacket(buffer.array(), buffer.capacity());
                 udpSocket.receive(datagramPacket);
@@ -153,6 +166,8 @@ public class Client {
                 packetReceived(packet);
             } catch (final SocketException | EOFException e) {
                 close();
+                break;
+            } catch (ClosedByInterruptException e) {
                 break;
             } catch (IOException e) {
                 logger.error("Error in UDP listener thread: {} :", e.getClass(), e);
@@ -184,8 +199,7 @@ public class Client {
     private boolean postProcessPacket(Packet packet) {
         if (packet.getID() == (short) -1000) {
             try {
-                PacketReader packetReader = new PacketReader(packet);
-                int udpPort = packetReader.readInt();
+                int udpPort = packet.getBuffer().getInt();
 
                 if (udpPort != udpSocket.getLocalPort()) {
                     logger.error("Invalid UDP port assigned by server. Resending port...");
@@ -195,6 +209,7 @@ public class Client {
 
                 this.udpConnected = true;
                 logger.debug("UDP connection established on port {}", udpPort);
+                udpConnectionLatch.countDown();
                 listeners.forEach(listener -> listener.onConnected(ProtocolType.UDP));
             } catch (BufferUnderflowException e) {
                 logger.error("Unreadable UDP port packet from server. Resending port: {} :", e.getClass(), e);
@@ -216,12 +231,23 @@ public class Client {
 
         udpConnected = false;
 
-        Packet portPacket = new PacketBuilder()
-                .withID((short) -1000)
-                .withInt(udpSocket.getLocalPort())
-                .build();
+        Packet portPacket = new Packet((short) -1000);
+        portPacket.getBuffer().putInt(udpSocket.getLocalPort());
 
-        return send(portPacket, ProtocolType.TCP);
+        udpConnectionLatch = new CountDownLatch(1);
+
+        boolean sentSuccessfully = send(portPacket, ProtocolType.TCP);
+
+        if (sentSuccessfully) {
+            // Wait for the UDP connection to be established
+            try {
+                udpConnectionLatch.await();
+            } catch (InterruptedException e) {
+                return false;
+            }
+        }
+
+        return sentSuccessfully;
     }
 
     /**
@@ -234,12 +260,23 @@ public class Client {
         logger.info("Closing client");
 
         try {
-            tcpSocket.close();
-            udpConnected = false;
-            udpSocket.close();
+            threadPoolManager.shutdown(true);
+            logger.debug("Threads interrupted");
+
+            if (tcpSocket != null) {
+                tcpSocket.close();
+                socketChannel.close();
+            }
+            if (udpSocket != null) {
+                udpConnected = false;
+                udpSocket.close();
+                datagramChannel.close();
+            }
             logger.debug("Sockets closed");
-        } catch (final IOException e) {
-            logger.error("Unable to close socket: {} :", e.getClass(), e);
+
+            threadPoolManager.awaitTermination();
+        } catch (InterruptedException | IOException e) {
+            throw new RuntimeException(e);
         }
 
         // Notify listeners about the disconnection

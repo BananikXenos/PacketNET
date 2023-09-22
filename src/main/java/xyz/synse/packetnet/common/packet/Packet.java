@@ -1,78 +1,61 @@
 package xyz.synse.packetnet.common.packet;
 
+import xyz.synse.packetnet.common.data.DynamicByteBuffer;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 public class Packet {
     private final short id;
-    private final byte[] data;
-    private final int providedHashcode;
-    private final int hashcode;
+    private final DynamicByteBuffer buffer;
 
-    public Packet(short id, byte[] data) {
+    public Packet(short id, DynamicByteBuffer buffer) {
         this.id = id;
-        this.data = data;
-
-        this.hashcode = Arrays.hashCode(data);
-        this.providedHashcode = Arrays.hashCode(data);
+        this.buffer = buffer;
     }
 
-    public Packet(short id, byte[] data, int providedHashcode) {
+    public Packet(short id) {
         this.id = id;
-        this.data = data;
-
-        this.providedHashcode = providedHashcode;
-        this.hashcode = Arrays.hashCode(data);
+        this.buffer = new DynamicByteBuffer(16, 1.5f);
     }
 
-    public byte[] getData() {
-        return data;
+    public DynamicByteBuffer getBuffer() {
+        return buffer;
     }
 
     public short getID() {
         return id;
     }
 
-    public int getHashcode() {
-        return hashcode;
-    }
-
-    public int getProvidedHashcode() {
-        return providedHashcode;
-    }
-
-    public boolean validateHashcode() {
-        return hashcode == providedHashcode;
-    }
-
-    public ByteBuffer write(ByteBuffer buffer) {
+    public ByteBuffer write(ByteBuffer outBuffer) {
         // Write packet id
-        buffer.putShort(id);
-        // Write packet checksum
-        buffer.putInt(hashcode);
+        outBuffer.putShort(id);
         // Read packet data
-        buffer.putInt(data.length);
-        buffer.put(data);
+        outBuffer.putInt(buffer.capacity());
+        outBuffer.put(buffer.array());
 
-        return buffer;
+        return outBuffer;
     }
 
-    public static Packet read(ByteBuffer buffer) throws IOException {
+    public static Packet read(ByteBuffer inBuffer) throws IOException {
         // Read packet id
-        short id = buffer.getShort();
-        // Read packet checksum
-        int hashcode = buffer.getInt();
-        // Read packet data
-        int len = buffer.getInt();
-        byte[] data = new byte[len];
-        buffer.get(data);
+        short id = inBuffer.getShort();
+        // Read packet data length
+        int len = inBuffer.getInt();
 
-        return new Packet(id, data, hashcode);
+        // Create a DynamicByteBuffer and read data directly from inBuffer
+        DynamicByteBuffer byteBuffer = new DynamicByteBuffer(len, 1.5f);
+        byteBuffer.put(inBuffer.array(), inBuffer.position(), len);
+        inBuffer.position(inBuffer.position() + len);
+        byteBuffer.rewind();
+
+        return new Packet(id, byteBuffer);
     }
+
 
     @Override
     public String toString() {
-        return String.format("id: %s, data: %d bytes", id, data.length);
+        return String.format("id: %s, data: %d bytes", id, buffer.position());
     }
 }

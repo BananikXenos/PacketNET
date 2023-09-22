@@ -4,24 +4,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.packet.Packet;
-import xyz.synse.packetnet.common.packet.PacketReader;
+import xyz.synse.packetnet.common.threading.ThreadPoolManager;
 import xyz.synse.packetnet.server.listeners.ServerListener;
 
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.nio.channels.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import static xyz.synse.packetnet.common.threading.ThreadManager.launchThread;
-
 public class Server {
     private final Logger logger = LoggerFactory.getLogger(Server.class);
+    private ThreadPoolManager threadPoolManager;
     private final int readBufferSize;
     private final int writeBufferSize;
 
+    private DatagramChannel datagramChannel;
     private DatagramSocket udpSocket;
+    private ServerSocketChannel serverSocketChannel;
     private ServerSocket tcpSocket;
 
     private final List<Connection> connections = new ArrayList<>();
@@ -57,16 +59,22 @@ public class Server {
         logger.debug("Starting server");
 
         try {
-            tcpSocket = new ServerSocket(tcpPort);
-            udpSocket = new DatagramSocket(udpPort);
+            this.serverSocketChannel = ServerSocketChannel.open();
+            this.serverSocketChannel.bind(new InetSocketAddress(tcpPort));
+            this.tcpSocket = serverSocketChannel.socket();
+            this.datagramChannel = DatagramChannel.open();
+            this.datagramChannel.bind(new InetSocketAddress(udpPort));
+            this.udpSocket = datagramChannel.socket();
         } catch (final Exception e) {
             logger.error("Unable to start server: {} :", e.getClass(), e);
             return false;
         }
 
         logger.debug("Starting threads");
-        launchThread(this::acceptorThreadImpl);
-        launchThread(this::listenerUdpThreadImpl);
+        threadPoolManager = new ThreadPoolManager();
+
+        threadPoolManager.submit(this::acceptorThreadImpl);
+        threadPoolManager.submit(this::listenerUdpThreadImpl);
 
         return true;
     }
@@ -81,15 +89,25 @@ public class Server {
     /**
      * Stops the server and closes all connections.
      */
-    public synchronized void stop() {
+    public synchronized void close() {
         logger.info("Stopping server");
 
         connections.clear();
 
         try {
-            if (tcpSocket != null) tcpSocket.close();
-            if (udpSocket != null) udpSocket.close();
+            threadPoolManager.shutdown(true);
+
+            if (tcpSocket != null) {
+                tcpSocket.close();
+                serverSocketChannel.close();
+            }
+            if (udpSocket != null) {
+                udpSocket.close();
+                datagramChannel.close();
+            }
             logger.debug("Sockets closed");
+
+            threadPoolManager.awaitTermination();
         } catch (final Exception e) {
             logger.error("Unable to close server: {} :", e.getClass(), e);
         }
@@ -117,7 +135,7 @@ public class Server {
      * Starts the TCP listener thread to accept incoming connections.
      */
     private void acceptorThreadImpl() {
-        while (true) {
+        while (!Thread.currentThread().isInterrupted()) {
             try {
                 Socket clientSocket = tcpSocket.accept();
                 clientSocket.setTcpNoDelay(true);
@@ -126,13 +144,15 @@ public class Server {
                 connections.add(connection);
 
                 listeners.forEach(listener -> listener.onConnected(connection, ProtocolType.TCP));
-                launchThread(() -> handleTcpClient(connection));
+                threadPoolManager.submit(() -> handleTcpClient(connection));
+            } catch (AsynchronousCloseException e) {
+                break;
             } catch (final SocketException ignored) {
-                stop();
+                close();
                 break;
             } catch (final IOException e) {
                 logger.error("Error in TCP listener thread: {} :", e.getClass(), e);
-                stop();
+                close();
                 break;
             }
         }
@@ -146,7 +166,7 @@ public class Server {
     private void listenerUdpThreadImpl() {
         ByteBuffer buffer = ByteBuffer.allocate(readBufferSize);
 
-        while (true) {
+        while (!Thread.currentThread().isInterrupted()) {
             try {
                 DatagramPacket datagramPacket = new DatagramPacket(buffer.array(), buffer.capacity());
                 udpSocket.receive(datagramPacket);
@@ -169,12 +189,11 @@ public class Server {
                 logger.debug("Received packet using UDP from {}:{}: {{}}", connection.getTcpSocket().getInetAddress(), connection.getUdpPort().get(), packet);
 
                 fireReceivedListeners(connection, packet);
-            } catch (final SocketException ignored) {
-                stop();
+            } catch (final SocketException | ClosedByInterruptException ignored) {
                 break;
             } catch (final IOException e) {
                 logger.error("Error in UDP listener thread: {} :", e.getClass(), e);
-                stop();
+                close();
                 break;
             }
         }
@@ -190,7 +209,7 @@ public class Server {
      */
     private void handleTcpClient(Connection connection) {
         ByteBuffer buffer = ByteBuffer.allocate(readBufferSize);
-        while (true) {
+        while (!Thread.currentThread().isInterrupted()) {
             try {
                 int bytesRead = connection.getTcpSocket().getInputStream().read(buffer.array());
 
@@ -212,7 +231,7 @@ public class Server {
                 break;
             } catch (final IOException e) {
                 logger.error("Error in TCP listener thread: {} :", e.getClass(), e);
-                stop();
+                close();
                 break;
             }
         }
@@ -236,8 +255,7 @@ public class Server {
     private boolean postProcessPacket(Connection connection, Packet packet) {
         if (packet.getID() == (short) -1000) {
             try {
-                PacketReader packetReader = new PacketReader(packet);
-                int udpPort = packetReader.readInt();
+                int udpPort = packet.getBuffer().getInt();
 
                 connection.setUdpPort(udpPort);
                 send(connection, packet, ProtocolType.TCP);

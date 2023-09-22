@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import xyz.synse.packetnet.client.Client;
 import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.packet.Packet;
-import xyz.synse.packetnet.common.packet.PacketBuilder;
 import xyz.synse.packetnet.server.Connection;
 import xyz.synse.packetnet.server.Server;
 import xyz.synse.packetnet.server.listeners.ServerListener;
@@ -15,6 +14,7 @@ import xyz.synse.packetnet.server.listeners.ServerListener;
 import java.io.IOException;
 import java.util.Random;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BenchmarkTest {
@@ -37,7 +37,7 @@ public class BenchmarkTest {
     {
         client.close();
         server.waitForEmptyServer();
-        server.stop();
+        server.close();
     }
 
     @Test
@@ -47,13 +47,12 @@ public class BenchmarkTest {
         final byte[] randomData = new byte[4096];
         new Random().nextBytes(randomData);
 
-        final Packet packet = new PacketBuilder()
-                .withBytes(randomData)
-                .build();
+        final Packet packet = new Packet((short) 0);
+        packet.getBuffer().put(randomData);
         server.addListener(new ServerListener() {
             @Override
             public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) throws IOException {
-                assertTrue(packet.validateHashcode());
+                assertNotNull(packet);
             }
         });
 
@@ -74,13 +73,12 @@ public class BenchmarkTest {
         final byte[] randomData = new byte[4096];
         new Random().nextBytes(randomData);
 
-        final Packet packet = new PacketBuilder()
-                .withBytes(randomData)
-                .build();
+        final Packet packet = new Packet((short) 0);
+        packet.getBuffer().put(randomData);
         server.addListener(new ServerListener() {
             @Override
             public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) throws IOException {
-                assertTrue(packet.validateHashcode());
+                assertNotNull(packet);
             }
         });
 

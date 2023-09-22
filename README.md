@@ -100,31 +100,28 @@ client.connect(/*server ip*/"127.0.0.1", /*server tcp port*/4443, /*server udp p
 #### Creating a Packet
 Is this example we will make a packet with a short String and a long of our current time in milliseconds
 ```java
-Packet packet = new PacketBuilder()
-                .withID((short)1)
-                .withString("Hello, World!")
-                .withLong(System.currentTimeMillis())
-                .build();
+Packet packet = new Packet((short) 1);
+packet.getBuffer().putString("Hello, World!");
+packet.getBuffer().putLong(System.currentTimeMillis());
 ```
 
 #### Compressing a Packet (Optional)
 
-This is very simple. Note: You have to decompress the packet before using it `PacketCompressor.decompress(compressedPacket)`, after you have received it using a listener (onReceived)
+This is very simple. Note: You have to decompress the packet before using it `packet.getBuffer().decompress()`, after you have received it using a listener (onReceived)
 ```java
-Packet compressedPacket = PacketCompressor.compress(packet);
+packet.getBuffer().compress();
 ```
 #### Encrypting a Packet (Optional)
-Same goes here. It's very simple, but you have to decrypt it `PacketEncryptor.decrypt(encryptedPacket, <key used to encrypt>)` before using it, after you have received it using a listener (onReceived).
+Same goes here. It's very simple, but you have to decrypt it `packet.getBuffer().decrypt(<key used to encrypt>)` before using it, after you have received it using a listener (onReceived).
 
 ```java
-Packet encryptPacket = PacketEncryptor.encrypt(packet, "5rT31^fcs4MpUBPI");
+packet.getBuffer().encrypt("5rT31^fcs4MpUBPI");
 ```
 #### Reading a Packet
 You can read the packet like this
 ```java
-PacketReader packetReader = new PacketReader(packet);
-String ourString = packetReader.readString();
-long ourTime = packetReader.readLong();
+String ourString = packet.getBuffer().getString();
+long ourTime = packet.getBuffer().getLong();
 System.out.println("[SERVER] Read " + ourString + " and " + ourTime);
 ```
 
@@ -155,7 +152,7 @@ For Server use:
 ```java
 // Additionally you can wait for the server to be empty.
 // server.waitForEmptyServer();
-server.stop();
+server.close();
 ```
 
 #### That's it! Have fun using PacketNET!
