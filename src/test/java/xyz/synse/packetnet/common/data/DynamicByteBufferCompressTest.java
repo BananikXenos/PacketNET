@@ -15,7 +15,7 @@ public class DynamicByteBufferCompressTest {
 
         for (int size : packetSizes) {
             // Create the original packet
-            byte[] bytes = new byte[7168];
+            byte[] bytes = new byte[size];
             new Random().nextBytes(bytes);
             DynamicByteBuffer byteBuffer = new DynamicByteBuffer(16, 1.5f);
             byteBuffer.putString("Hello, World!");

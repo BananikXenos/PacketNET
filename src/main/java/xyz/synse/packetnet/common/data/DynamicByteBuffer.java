@@ -367,7 +367,7 @@ public class DynamicByteBuffer implements Comparable<ByteBuffer> {
     }
 
     private static final String ALGORITHM = "AES";
-    private static final String TRANSFORMATION = "AES/ECB/PKCS5Padding";
+    private static final String TRANSFORMATION = "AES";
 
     public DynamicByteBuffer encrypt(String key) throws NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidKeyException {
         return encrypt(new SecretKeySpec(key.getBytes(), ALGORITHM));
@@ -462,7 +462,7 @@ public class DynamicByteBuffer implements Comparable<ByteBuffer> {
         }
         int newCapacity = (int) (byteBuffer.capacity() * expandFactor);
         while (newCapacity < (byteBuffer.capacity() + needed)) {
-            newCapacity *= expandFactor;
+            newCapacity = (int) (newCapacity * expandFactor);
         }
         ByteBuffer expanded = ByteBuffer.allocate(newCapacity);
         expanded.order(byteBuffer.order());
