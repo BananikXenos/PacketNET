@@ -4,7 +4,6 @@ import xyz.synse.packetnet.common.data.DynamicByteBuffer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 public class Packet {
     private final short id;

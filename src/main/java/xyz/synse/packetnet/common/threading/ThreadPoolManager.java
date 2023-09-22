@@ -2,9 +2,7 @@ package xyz.synse.packetnet.common.threading;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import xyz.synse.packetnet.server.Server;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -57,7 +55,7 @@ public class ThreadPoolManager {
         return executorService.isTerminated();
     }
 
-    public void awaitTermination() throws InterruptedException {
-        executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+    public boolean awaitTermination() throws InterruptedException {
+        return executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
     }
 }

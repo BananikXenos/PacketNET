@@ -8,13 +8,9 @@ import xyz.synse.packetnet.client.Client;
 import xyz.synse.packetnet.client.listeners.ClientListener;
 import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.packet.Packet;
-import xyz.synse.packetnet.server.Connection;
-import xyz.synse.packetnet.server.Server;
 import xyz.synse.packetnet.server.listeners.ServerListener;
 
 import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -34,7 +30,7 @@ public class MultiClientTest {
     private static CountDownLatch clientsConnectedLatch;
 
     @BeforeAll
-    public static void setUp() throws IOException {
+    public static void setUp() {
         // Start the server
         server = new Server();
         server.addListener(new ServerListener() {
@@ -87,7 +83,7 @@ public class MultiClientTest {
     }
 
     @Test
-    public void testMultiClientCommunication() throws IOException, InterruptedException {
+    public void testMultiClientCommunication() throws InterruptedException {
         // Create a packet to send to the server
         Packet packet = new Packet((short) 1);
         packet.getBuffer().putString("Hello from client!");

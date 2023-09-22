@@ -17,7 +17,7 @@ public class DynamicByteBufferEncryptTest {
     private static final String key = "1F16hIQ3SjQ$k1!9";
 
     @Test
-    public void runTest() throws IOException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, ShortBufferException {
+    public void runTest() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
         int[] packetSizes = {1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576};
 
         for (int size : packetSizes) {

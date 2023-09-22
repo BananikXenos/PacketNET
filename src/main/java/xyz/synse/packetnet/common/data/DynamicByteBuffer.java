@@ -1,8 +1,11 @@
 package xyz.synse.packetnet.common.data;
 
-import xyz.synse.packetnet.common.packet.Packet;
+import org.jetbrains.annotations.NotNull;
 
-import javax.crypto.*;
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -15,7 +18,8 @@ import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
-import java.util.zip.*;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public class DynamicByteBuffer implements Comparable<ByteBuffer> {
 
@@ -99,7 +103,7 @@ public class DynamicByteBuffer implements Comparable<ByteBuffer> {
         return byteBuffer.compact();
     }
 
-    public int compareTo(ByteBuffer that) {
+    public int compareTo(@NotNull ByteBuffer that) {
         return byteBuffer.compareTo(that);
     }
 

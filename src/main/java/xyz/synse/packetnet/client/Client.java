@@ -283,13 +283,6 @@ public class Client {
         listeners.forEach(ClientListener::onDisconnected);
     }
 
-    public void waitForUDPConnection() throws InterruptedException {
-        do {
-            logger.debug("Waiting for udp connection");
-            Thread.sleep(10);
-        } while (!isConnected(ProtocolType.UDP));
-    }
-
     /**
      * Adds a listener to receive events from the client.
      *

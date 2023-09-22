@@ -3,7 +3,6 @@ package xyz.synse.packetnet.client;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import xyz.synse.packetnet.client.Client;
 import xyz.synse.packetnet.client.listeners.ClientListener;
 import xyz.synse.packetnet.common.ProtocolType;
 import xyz.synse.packetnet.common.packet.Packet;
@@ -12,8 +11,6 @@ import xyz.synse.packetnet.server.Server;
 import xyz.synse.packetnet.server.listeners.ServerListener;
 
 import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -31,16 +28,16 @@ public class ProtocolSwitchingTest {
     private static Client client;
     private static ProtocolType connectionLatchType = ProtocolType.TCP;
     private static CountDownLatch clientConnectedLatch;
-    private static ArrayList<Packet> packetsReceived = new ArrayList<>();
+    private static final ArrayList<Packet> packetsReceived = new ArrayList<>();
 
     @BeforeAll
-    public static void setUp() throws IOException {
+    public static void setUp() {
         // Start the server with TCP and UDP listeners
         server = new Server();
         server.addListener(new ServerListener() {
 
             @Override
-            public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) throws IOException {
+            public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) {
                 if (packet.getID() == (short) 1)
                     packetsReceived.add(packet);
             }

@@ -20,7 +20,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
 public class Test {
-    public static void main(String[] args) throws IOException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException, ShortBufferException {
+    public static void main(String[] args) throws IOException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException, InterruptedException {
         // First, for this example, we will disable sfl4j logging just to see our own messages
         Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
         root.setLevel(Level.OFF);
@@ -38,7 +38,7 @@ public class Test {
             }
 
             @Override
-            public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) throws IOException {
+            public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) {
                 System.out.println("[SERVER] Received packet " + packet.toString() + " from " + connection.toString() + " using " + protocolType.name());
                 // Now we will read the packet (YOU HAVE TO READ IN THE SAME ORDER AS WRITTEN)
                 String ourString = packet.getBuffer().getString();
@@ -67,7 +67,7 @@ public class Test {
             }
 
             @Override
-            public void onReceived(ProtocolType protocolType, Packet packet) throws IOException {
+            public void onReceived(ProtocolType protocolType, Packet packet) {
                 System.out.println("[CLIENT] Received packet " + packet.toString() + " using " + protocolType.name());
             }
 

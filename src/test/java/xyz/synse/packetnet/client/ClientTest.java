@@ -12,10 +12,8 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ClientTest {
     @Test
@@ -58,6 +56,10 @@ public class ClientTest {
         Thread.sleep(1000L);
         client.close();
         server.close();
+
+        for (int i = 0; i < 20; i++) {
+            assertNotNull(packets.get(i));
+        }
     }
 
     @Test
@@ -93,7 +95,6 @@ public class ClientTest {
         client.close();
         server.close();
 
-        // Validate hash codes
         for (int i = 0; i < 20; i++) {
             assertNotNull(packets.get(i));
         }

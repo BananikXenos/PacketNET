@@ -51,12 +51,10 @@ public class BenchmarkTest {
         packet.getBuffer().put(randomData);
         server.addListener(new ServerListener() {
             @Override
-            public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) throws IOException {
+            public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) {
                 assertNotNull(packet);
             }
         });
-
-        client.waitForUDPConnection();
 
         long start = System.currentTimeMillis();
         for (int i = 0; i < amount; i++) {
@@ -77,12 +75,10 @@ public class BenchmarkTest {
         packet.getBuffer().put(randomData);
         server.addListener(new ServerListener() {
             @Override
-            public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) throws IOException {
+            public void onReceived(Connection connection, ProtocolType protocolType, Packet packet) {
                 assertNotNull(packet);
             }
         });
-
-        client.waitForUDPConnection();
 
         long start = System.currentTimeMillis();
         for (int i = 0; i < amount; i++) {

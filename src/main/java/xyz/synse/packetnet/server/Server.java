@@ -82,6 +82,7 @@ public class Server {
     public void waitForEmptyServer() throws InterruptedException {
         do {
             logger.debug("Waiting for server to be empty");
+            // TODO: 9/22/2023 Replace this horrible code
             Thread.sleep(10);
         } while (!connections.isEmpty());
     }
@@ -333,9 +334,8 @@ public class Server {
      *
      * @param packet   The packet to broadcast.
      * @param protocol The protocol to use (TCP or UDP).
-     * @throws IOException if an I/O error occurs while broadcasting the packet.
      */
-    public synchronized void broadcast(Packet packet, ProtocolType protocol) throws IOException {
+    public synchronized void broadcast(Packet packet, ProtocolType protocol) {
         for (Connection connection : connections) {
             send(connection, packet, protocol);
         }

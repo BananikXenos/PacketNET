@@ -1,5 +1,7 @@
 package xyz.synse.packetnet.common.threading;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -20,7 +22,7 @@ public class NamedThreadFactory implements ThreadFactory {
         this.threadPriority = threadPriority;
     }
 
-    public Thread newThread(Runnable r) {
+    public Thread newThread(@NotNull Runnable r) {
         Thread t = new Thread(group, r, namePrefix + threadNumber.getAndIncrement() + "]", 0);
         if (t.isDaemon())
             t.setDaemon(false);
