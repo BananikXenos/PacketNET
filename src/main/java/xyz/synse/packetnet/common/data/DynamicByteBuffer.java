@@ -485,13 +485,23 @@ public class DynamicByteBuffer implements Comparable<ByteBuffer> {
         if (remaining() >= needed) {
             return;
         }
+
+        int currentPosition = byteBuffer.position();
         int newCapacity = (int) (byteBuffer.capacity() * expandFactor);
-        while (newCapacity < (byteBuffer.capacity() + needed)) {
+        while (newCapacity < (currentPosition + needed)) {
             newCapacity = (int) (newCapacity * expandFactor);
         }
+
         ByteBuffer expanded = ByteBuffer.allocate(newCapacity);
         expanded.order(byteBuffer.order());
+
+        // Rewind the original buffer and copy its data to the expanded buffer
+        byteBuffer.rewind();
         expanded.put(byteBuffer);
+
+        // Restore the original position in the expanded buffer
+        expanded.position(currentPosition);
+
         byteBuffer = expanded;
     }
 
