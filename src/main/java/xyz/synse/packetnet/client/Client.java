@@ -104,7 +104,8 @@ public class Client {
         InetAddress address = InetAddress.getByName(host);
         this.udpPort = udpPort;
 
-        this.socketChannel = SocketChannel.open(new InetSocketAddress(tcpPort));
+        this.socketChannel = SocketChannel.open();
+        this.socketChannel.connect(new InetSocketAddress(address, tcpPort));
         this.tcpSocket = socketChannel.socket();
         this.tcpSocket.setTcpNoDelay(true);
         this.datagramChannel = DatagramChannel.open();
