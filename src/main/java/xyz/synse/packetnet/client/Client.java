@@ -70,7 +70,7 @@ public class Client {
      * @param udpPort The UDP port of the server.
      * @return True if the client successfully connects, false otherwise.
      */
-    public synchronized boolean connect(String host, int tcpPort, int udpPort) {
+    public boolean connect(String host, int tcpPort, int udpPort) {
         if ((this.tcpSocket != null && !this.tcpSocket.isClosed()) || (this.udpSocket != null && !this.udpSocket.isClosed()))
             throw new IllegalArgumentException("Client not closed");
         if (host.isEmpty() || tcpPort == -1 || udpPort == -1)
@@ -97,7 +97,7 @@ public class Client {
      * @param udpPort The UDP port of the server.
      * @throws IOException if an I/O error occurs while setting up the sockets.
      */
-    public synchronized void setSockets(String host, int tcpPort, int udpPort) throws IOException {
+    public void setSockets(String host, int tcpPort, int udpPort) throws IOException {
         if ((this.tcpSocket != null && !this.tcpSocket.isClosed()) || (this.udpSocket != null && !this.udpSocket.isClosed()))
             throw new IllegalArgumentException("Client not closed");
 
@@ -234,7 +234,7 @@ public class Client {
      *
      * @return True if the UDP port packet is sent successfully, false otherwise.
      */
-    public synchronized boolean reconnectUDP() {
+    public boolean reconnectUDP() {
         if (udpSocket == null || udpSocket.isClosed()) return false;
 
         udpConnected = false;
@@ -261,7 +261,7 @@ public class Client {
     /**
      * Closes the client connection to the server.
      */
-    public synchronized void close() {
+    public void close() {
         if (tcpSocket.isClosed() && udpSocket.isClosed()) return;
         if (tcpSocket == null && udpSocket == null) return;
 
@@ -316,7 +316,7 @@ public class Client {
      * @param protocol The protocol to use (TCP or UDP).
      * @return True if the packet is sent successfully, false otherwise.
      */
-    public synchronized boolean send(Packet packet, ProtocolType protocol) {
+    public boolean send(Packet packet, ProtocolType protocol) {
         if (!isConnected(protocol)) return false;
 
         try {
@@ -338,7 +338,7 @@ public class Client {
      * @param packet The packet to send.
      * @throws IOException if an I/O error occurs while sending the packet.
      */
-    private synchronized void sendTcp(Packet packet) throws IOException {
+    private void sendTcp(Packet packet) throws IOException {
         ByteBuffer buffer = ByteBuffer.allocate(writeBufferSize);
         byte[] data = packet.write(buffer).array();
 
@@ -352,7 +352,7 @@ public class Client {
      * @param packet The packet to send.
      * @throws IOException if an I/O error occurs while sending the packet.
      */
-    private synchronized void sendUdp(Packet packet) throws IOException {
+    private void sendUdp(Packet packet) throws IOException {
         ByteBuffer buffer = ByteBuffer.allocate(writeBufferSize);
         byte[] data = packet.write(buffer).array();
 

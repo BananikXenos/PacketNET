@@ -63,7 +63,7 @@ public class Server {
      * @param udpPort The UDP port to listen on.
      * @return true if the server started successfully, false otherwise.
      */
-    public synchronized boolean start(int tcpPort, int udpPort) {
+    public boolean start(int tcpPort, int udpPort) {
         logger.debug("Starting server");
 
         try {
@@ -98,7 +98,7 @@ public class Server {
     /**
      * Stops the server and closes all connections.
      */
-    public synchronized void close() {
+    public void close() {
         logger.info("Stopping server");
 
         connections.clear();
@@ -286,7 +286,7 @@ public class Server {
      * @param packet     The packet to send.
      * @param protocol   The protocol to use (TCP or UDP).
      */
-    public synchronized boolean send(Connection connection, Packet packet, ProtocolType protocol) {
+    public boolean send(Connection connection, Packet packet, ProtocolType protocol) {
         if (!isClientConnected(connection, protocol)) return false;
 
         try {
@@ -310,7 +310,7 @@ public class Server {
      * @param packet     The packet to send.
      * @throws IOException if an I/O error occurs while sending the packet.
      */
-    private synchronized void sendTcp(Connection connection, Packet packet) throws IOException {
+    private void sendTcp(Connection connection, Packet packet) throws IOException {
         Socket tcpSocket = connection.getTcpSocket();
 
         ByteBuffer buffer = ByteBuffer.allocate(writeBufferSize);
@@ -327,7 +327,7 @@ public class Server {
      * @param packet     The packet to send.
      * @throws IOException if an I/O error occurs while sending the packet.
      */
-    private synchronized void sendUdp(Connection connection, Packet packet) throws IOException {
+    private void sendUdp(Connection connection, Packet packet) throws IOException {
         int udpPort = connection.getUdpPort().get();
 
         ByteBuffer buffer = ByteBuffer.allocate(writeBufferSize);
@@ -343,7 +343,7 @@ public class Server {
      * @param packet   The packet to broadcast.
      * @param protocol The protocol to use (TCP or UDP).
      */
-    public synchronized void broadcast(Packet packet, ProtocolType protocol) {
+    public void broadcast(Packet packet, ProtocolType protocol) {
         for (Connection connection : connections) {
             send(connection, packet, protocol);
         }
@@ -356,7 +356,7 @@ public class Server {
      * @param protocolType The protocol to check (TCP or UDP).
      * @return True if the client is connected using the specified protocol, false otherwise.
      */
-    public synchronized boolean isClientConnected(Connection connection, ProtocolType protocolType) {
+    public boolean isClientConnected(Connection connection, ProtocolType protocolType) {
         if (protocolType == ProtocolType.TCP)
             return connection.getTcpSocket() != null && connection.getTcpSocket().isConnected();
         else if (protocolType == ProtocolType.UDP)
