@@ -18,6 +18,7 @@ import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.UUID;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -163,6 +164,18 @@ public class DynamicByteBuffer implements Comparable<ByteBuffer> {
         return new String(data, StandardCharsets.UTF_8);
     }
 
+    public UUID getUUID() {
+        long mostSigBits = getLong();
+        long leastSigBits = getLong();
+        return new UUID(mostSigBits, leastSigBits);
+    }
+
+    public UUID getUUID(int index) {
+        long mostSigBits = getLong(index);
+        long leastSigBits = getLong(index + Long.BYTES);
+        return new UUID(mostSigBits, leastSigBits);
+    }
+
     public double getDouble() {
         return byteBuffer.getDouble();
     }
@@ -278,6 +291,18 @@ public class DynamicByteBuffer implements Comparable<ByteBuffer> {
 
         byteBuffer.putInt(index, data.length);
         return byteBuffer.put(index + Integer.BYTES, data);
+    }
+
+    public ByteBuffer putUUID(UUID value) {
+        ensureSpace(2 * Long.BYTES);
+        byteBuffer.putLong(value.getMostSignificantBits());
+        return putLong(value.getLeastSignificantBits());
+    }
+
+    public ByteBuffer putUUID(int index, UUID value) {
+        ensureSpace(2 * Long.BYTES);
+        byteBuffer.putLong(index, value.getMostSignificantBits());
+        return putLong(index + Long.BYTES, value.getLeastSignificantBits());
     }
 
     public ByteBuffer putDouble(double value) {
