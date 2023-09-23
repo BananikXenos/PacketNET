@@ -109,9 +109,8 @@ public class Client {
         this.tcpSocket = socketChannel.socket();
         this.tcpSocket.setTcpNoDelay(true);
         this.datagramChannel = DatagramChannel.open();
+        this.datagramChannel.connect(new InetSocketAddress(address, udpPort));
         this.udpSocket = datagramChannel.socket();
-
-        udpSocket.bind(new InetSocketAddress(0));
 
         threadPoolManager = new ThreadPoolManager();
 
