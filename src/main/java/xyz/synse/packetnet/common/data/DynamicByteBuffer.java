@@ -456,7 +456,7 @@ public class DynamicByteBuffer implements Comparable<ByteBuffer> {
         return expandFactor;
     }
 
-    private void ensureSpace(int needed) {
+    public void ensureSpace(int needed) {
         if (remaining() >= needed) {
             return;
         }
@@ -470,7 +470,7 @@ public class DynamicByteBuffer implements Comparable<ByteBuffer> {
         byteBuffer = expanded;
     }
 
-    private void setSpace(int newCapacity) {
+    public void setSpace(int newCapacity) {
         ByteBuffer expanded = ByteBuffer.allocate(newCapacity);
         expanded.order(byteBuffer.order());
         expanded.put(Arrays.copyOf(byteBuffer.array(), newCapacity));

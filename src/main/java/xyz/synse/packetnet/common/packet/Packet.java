@@ -4,6 +4,8 @@ import xyz.synse.packetnet.common.data.DynamicByteBuffer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Objects;
 
 public class Packet {
     private final short id;
@@ -52,9 +54,21 @@ public class Packet {
         return new Packet(id, byteBuffer);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Packet packet = (Packet) o;
+        return id == packet.id && Arrays.equals(buffer.array(), packet.buffer.array());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, buffer);
+    }
 
     @Override
     public String toString() {
-        return String.format("id: %s, data: %d bytes", id, buffer.position());
+        return String.format("id: %s, data: %d bytes", id, buffer.capacity());
     }
 }

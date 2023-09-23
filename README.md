@@ -7,8 +7,8 @@ PacketNET is a Java library for network communication using custom packet-based 
 ## Features
 
 - Support for both TCP and UDP protocols
-- Packet compression using LZ4, Deflater or GZip algorithm
-- Packet encryption using AES256
+- Packet compression
+- Packet encryption
 - Efficient Server and client implementations
 - Thread Management
 - Event-based listener system
@@ -158,7 +158,7 @@ server.close();
 #### That's it! Have fun using PacketNET!
 
 ## Full Example
-You can find the full example [here](src/main/java/xyz/synse/packetnet/Test.java)
+You can find the full example [here](src/main/java/xyz/synse/packetnet/Example.java)
 
 ## Support
 

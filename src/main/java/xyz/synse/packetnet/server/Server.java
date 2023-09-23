@@ -48,6 +48,14 @@ public class Server {
         this(8192, 8192);
     }
 
+    public int getWriteBufferSize() {
+        return writeBufferSize;
+    }
+
+    public int getReadBufferSize() {
+        return readBufferSize;
+    }
+
     /**
      * Starts the server on the specified TCP and UDP ports.
      *

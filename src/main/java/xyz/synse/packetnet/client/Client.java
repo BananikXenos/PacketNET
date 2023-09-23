@@ -54,6 +54,14 @@ public class Client {
         this(8192, 8192);
     }
 
+    public int getWriteBufferSize() {
+        return writeBufferSize;
+    }
+
+    public int getReadBufferSize() {
+        return readBufferSize;
+    }
+
     /**
      * Connects the client to the server using the specified TCP and UDP ports.
      *
